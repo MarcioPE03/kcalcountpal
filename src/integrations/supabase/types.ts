@@ -152,6 +152,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pesos: {
+        Row: {
+          created_at: string
+          fecha: string
+          id: string
+          peso_kg: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fecha: string
+          id?: string
+          peso_kg: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          id?: string
+          peso_kg?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           altura_cm: number | null
@@ -164,6 +191,7 @@ export type Database = {
           objetivo: string | null
           onboarding_completo: boolean
           peso_kg: number | null
+          peso_meta_kg: number | null
           sexo: string | null
         }
         Insert: {
@@ -177,6 +205,7 @@ export type Database = {
           objetivo?: string | null
           onboarding_completo?: boolean
           peso_kg?: number | null
+          peso_meta_kg?: number | null
           sexo?: string | null
         }
         Update: {
@@ -190,6 +219,7 @@ export type Database = {
           objetivo?: string | null
           onboarding_completo?: boolean
           peso_kg?: number | null
+          peso_meta_kg?: number | null
           sexo?: string | null
         }
         Relationships: []
