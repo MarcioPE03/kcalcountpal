@@ -29,7 +29,7 @@ export function PesoTab() {
   const perfil = useQuery(perfilQuery());
   const qc = useQueryClient();
   const [rango, setRango] = useState<Rango>("3m");
-  const [dialogo, setDialogo] = useState<{ reg?: Reg } | null>(null);
+  const [dialogo, setDialogo] = useState<{ reg?: Reg | undefined } | null>(null);
   const [borrar, setBorrar] = useState<Reg | null>(null);
   const [editMeta, setEditMeta] = useState(false);
 
@@ -172,7 +172,7 @@ export function PesoTab() {
   );
 }
 
-function PesoDialog({ reg, inicial, hoy, onClose, onSaved }: { reg?: Reg; inicial: number; hoy: string; onClose: () => void; onSaved: () => void }) {
+function PesoDialog({ reg, inicial, hoy, onClose, onSaved }: { reg?: Reg | undefined; inicial: number; hoy: string; onClose: () => void; onSaved: () => void }) {
   const [fecha, setFecha] = useState(reg?.fecha ?? hoy);
   const [kg, setKg] = useState(reg?.peso_kg ?? inicial);
   const [guardando, setGuardando] = useState(false);

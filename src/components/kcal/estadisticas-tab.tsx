@@ -88,7 +88,7 @@ export function EstadisticasTab() {
             <div className="mt-4 h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
-                  <XAxis dataKey="etiqueta" ticks={ticksMes} interval={0} tickLine={false} axisLine={false} tick={tick} />
+                  <XAxis dataKey="etiqueta" {...(ticksMes ? { ticks: ticksMes } : {})} interval={0} tickLine={false} axisLine={false} tick={tick} />
                   <YAxis tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
                   <ReferenceLine y={limite} stroke="var(--accent)" strokeDasharray="4 4" />
                   <Bar dataKey="calorias" radius={[6, 6, 6, 6]} animationDuration={900}>
@@ -114,7 +114,7 @@ export function EstadisticasTab() {
             <div className="mt-4 h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
-                  <XAxis dataKey="etiqueta" ticks={ticksMes} interval={0} tickLine={false} axisLine={false} tick={tick} />
+                  <XAxis dataKey="etiqueta" {...(ticksMes ? { ticks: ticksMes } : {})} interval={0} tickLine={false} axisLine={false} tick={tick} />
                   <YAxis tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
                   <Bar dataKey="carbohidratos" stackId="m" fill="var(--carbs)" animationDuration={900} />
                   <Bar dataKey="proteinas" stackId="m" fill="var(--protein)" animationDuration={900} />

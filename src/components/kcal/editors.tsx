@@ -23,7 +23,7 @@ import {
   type Nutrientes,
 } from "@/lib/nutri";
 
-export function CategoriaSelect({ value, onChange, className }: { value?: string; onChange: (c: string) => void; className?: string }) {
+export function CategoriaSelect({ value, onChange, className }: { value?: string | undefined; onChange: (c: string) => void; className?: string }) {
   return (
     <Select value={normalizarCategoria(value)} onValueChange={onChange}>
       <SelectTrigger className={cn("h-8 w-auto gap-1 rounded-full text-xs", className)} aria-label="Categoría">
