@@ -11,7 +11,7 @@
 
 ## Project rules
 - Pure nutrition/date/format logic lives in `src/lib/nutri.ts` (tested in `nutri.test.ts`); keep it free of browser/server deps so rules stay testable.
-- Dates are local-day strings computed on the client (device time zone), never UTC `toISOString()` of "now".
+- Dates are local-day strings computed in America/Argentina/Buenos_Aires (the app's audience), never UTC `toISOString()` of "now".
 - AI calls run only in `src/lib/ai.functions.ts` server functions; the model id lives in the single constant in `src/lib/ai-model.ts`.
 - Photos are uploaded to storage only when a meal is saved, never before analysis; deleting a meal removes its photo unless another copied meal references it.
 - Signed-in pages live under `src/routes/_authenticated/`; `/` is the Hoy screen there (no top-level index route).

@@ -126,7 +126,7 @@ export function zonaDispositivo(): string {
 }
 
 /** YYYY-MM-DD for an instant in the given time zone. */
-export function fechaLocal(d: Date = new Date(), zona: string = zonaDispositivo()): string {
+export function fechaLocal(d: Date = new Date(), zona: string = ZONA_DEFECTO): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: zona,
     year: "numeric",
@@ -137,7 +137,7 @@ export function fechaLocal(d: Date = new Date(), zona: string = zonaDispositivo(
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
-export function horaLocal(d: Date = new Date(), zona: string = zonaDispositivo()): number {
+export function horaLocal(d: Date = new Date(), zona: string = ZONA_DEFECTO): number {
   const h = new Intl.DateTimeFormat("en-GB", { timeZone: zona, hour: "2-digit", hourCycle: "h23" }).format(d);
   return Number(h);
 }
@@ -161,6 +161,18 @@ export function momentoPorHora(h: number): Momento {
   if (h >= 15 && h < 19) return "merienda";
   if (h >= 19 && h < 23) return "cena";
   return "snack";
+}
+
+/** Day picked in a calendar (local Date at midnight) -> YYYY-MM-DD, no UTC shift. */
+export function fechaDeCalendario(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** YYYY-MM-DD -> local Date at noon (for calendar selection). */
+export function calendarioDeFecha(ymd: string): Date {
+  const [y = 1970, m = 1, d = 1] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d, 12);
 }
 
 // ---------- Formatting (es-AR) ----------
@@ -195,6 +207,18 @@ export function fmtDiaSemana(ymd: string): string {
   return new Intl.DateTimeFormat("es-AR", { weekday: "short", timeZone: "UTC" })
     .format(ymdToDate(ymd))
     .replace(".", "");
+}
+
+/** "Lunes 2 de noviembre" */
+export function fmtFechaLarga(ymd: string): string {
+  const dt = ymdToDate(ymd);
+  const dia = new Intl.DateTimeFormat("es-AR", { weekday: "long", timeZone: "UTC" }).format(dt);
+  const mes = new Intl.DateTimeFormat("es-AR", { month: "long", timeZone: "UTC" }).format(dt);
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${dt.getUTCDate()} de ${mes}`;
+}
+
+export function tituloLista(fecha: string, hoy: string): string {
+  return fecha === hoy ? "Comidas de hoy" : fmtFechaLarga(fecha);
 }
 
 export function fmtRango(kcal: number, min?: number | null, max?: number | null): string {
