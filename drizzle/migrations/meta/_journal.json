@@ -8,6 +8,13 @@
       "when": 1793744727439,
       "tag": "0000_kcal_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793744747556,
+      "tag": "0001_fotos_policies",
+      "breakpoints": true
     }
   ]
 }
