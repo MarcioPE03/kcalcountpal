@@ -8,8 +8,8 @@ import { NumberInput } from "@/components/kcal/editors";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { perfilQuery, uid } from "@/lib/data";
-import { fmt, metasSugeridas, type DatosPerfil } from "@/lib/nutri";
+import { guardarPeso, perfilQuery, uid, ultimoPeso } from "@/lib/data";
+import { PESO_MIN, fechaLocal, fmt, metasSugeridas, type DatosPerfil } from "@/lib/nutri";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
