@@ -8,24 +8,30 @@ export function BottomNav() {
   const active = { className: "text-primary" };
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur pb-safe">
-      <div className="mx-auto flex max-w-md items-end px-2">
+      <div className="mx-auto flex max-w-md items-end px-6">
         <Link to="/" className={item} activeProps={active} activeOptions={{ exact: true }}>
           <Home className="size-5" /> Hoy
         </Link>
         <Link to="/progreso" className={item} activeProps={active}>
           <BarChart3 className="size-5" /> Progreso
         </Link>
-        <Link to="/agregar" className="flex flex-1 flex-col items-center -mt-6" aria-label="Agregar comida">
-          <span className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab transition-transform active:scale-95">
-            <Plus className="size-7" strokeWidth={2.5} />
-          </span>
-          <span className="mt-0.5 text-[11px] font-semibold text-primary">Agregar</span>
-        </Link>
         <Link to="/perfil" className={item} activeProps={active}>
           <User className="size-5" /> Perfil
         </Link>
       </div>
     </nav>
+  );
+}
+
+export function FabAgregar() {
+  return (
+    <Link
+      to="/agregar"
+      aria-label="Agregar comida"
+      className="fixed right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab transition-transform active:scale-95 bottom-[calc(env(safe-area-inset-bottom)+5rem)] md:right-[calc(50%-14rem+1rem)]"
+    >
+      <Plus className="size-7" strokeWidth={2.5} />
+    </Link>
   );
 }
 

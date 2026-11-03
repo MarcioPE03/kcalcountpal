@@ -65,6 +65,16 @@ export const comidasRangoQuery = (desde: string, hasta: string) =>
     },
   });
 
+export const fechasConComidasQuery = (desde: string, hasta: string) =>
+  queryOptions({
+    queryKey: ["comidas-fechas", desde, hasta],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("comidas").select("fecha").gte("fecha", desde).lte("fecha", hasta);
+      if (error) throw error;
+      return [...new Set(data.map((r) => r.fecha))];
+    },
+  });
+
 export const comidaQuery = (id: string) =>
   queryOptions({
     queryKey: ["comida", id],
