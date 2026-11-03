@@ -15,3 +15,4 @@
 - AI calls run only in `src/lib/ai.functions.ts` server functions; the model id lives in the single constant in `src/lib/ai-model.ts`.
 - Photos are uploaded to storage only when a meal is saved, never before analysis; deleting a meal removes its photo unless another copied meal references it.
 - Signed-in pages live under `src/routes/_authenticated/`; `/` is the Hoy screen there (no top-level index route).
+- Weight history lives only in the `pesos` table (one row per user/day); never write `profiles.peso_kg` (deprecated) so there is a single source of truth.

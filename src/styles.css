@@ -82,6 +82,12 @@
   --carbs: oklch(0.78 0.17 72);
   --fat: oklch(0.66 0.19 10);
   --over: oklch(0.63 0.19 30);
+  --cat-1: oklch(0.55 0.12 160);
+  --cat-2: oklch(0.6 0.13 290);
+  --cat-3: oklch(0.7 0.12 120);
+  --cat-4: oklch(0.62 0.1 190);
+  --cat-5: oklch(0.68 0.13 330);
+  --cat-6: oklch(0.6 0.08 60);
   --track: oklch(0.93 0.012 130);
   --shadow-soft: 0 6px 24px -12px oklch(0.4 0.05 155 / 0.25);
   --shadow-fab: 0 10px 24px -8px oklch(0.56 0.1 155 / 0.55);
@@ -130,6 +136,12 @@
   --carbs: oklch(0.83 0.16 75);
   --fat: oklch(0.74 0.17 10);
   --over: oklch(0.7 0.17 30);
+  --cat-1: oklch(0.72 0.12 160);
+  --cat-2: oklch(0.72 0.12 290);
+  --cat-3: oklch(0.8 0.12 120);
+  --cat-4: oklch(0.74 0.1 190);
+  --cat-5: oklch(0.76 0.12 330);
+  --cat-6: oklch(0.74 0.07 60);
   --track: oklch(0.38 0.02 165);
   --shadow-soft: 0 6px 24px -12px oklch(0 0 0 / 0.45);
   --gradient-hero: linear-gradient(140deg, oklch(0.5 0.1 165) 0%, oklch(0.56 0.12 130) 55%, oklch(0.6 0.12 80) 100%);

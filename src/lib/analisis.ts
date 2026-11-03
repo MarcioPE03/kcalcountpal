@@ -3,6 +3,7 @@ import {
   NUTRIENTES,
   bajarConfianza,
   crearIngrediente,
+  normalizarCategoria,
   rangoPorConfianza,
   sumar,
   validarAtwater,
@@ -14,6 +15,8 @@ import {
 
 export const IngredienteIA = z.object({
   nombre: z.string(),
+  /** Closed list in the prompt; anything else is normalized to "Otros" (never rejected). */
+  categoria: z.string(),
   gramos: z.number(),
   calorias: z.number(),
   proteinas: z.number(),
@@ -55,7 +58,7 @@ export function procesarRespuesta(r: RespuestaIA): ResultadoAnalisis {
     .map((i, idx) => {
       const v = vacio();
       for (const k of NUTRIENTES) v[k] = Math.max(0, Number(i[k]) || 0);
-      return crearIngrediente(`ia-${idx}`, i.nombre.trim(), Math.max(0, Math.round(i.gramos)), v);
+      return crearIngrediente(`ia-${idx}`, i.nombre.trim(), Math.max(0, Math.round(i.gramos)), v, normalizarCategoria(i.categoria));
     });
   let totales = sumar(ingredientes);
   let confianza: Confianza = r.confianza;
@@ -72,7 +75,7 @@ export function procesarRespuesta(r: RespuestaIA): ResultadoAnalisis {
         totales.calorias > 0
           ? Math.round(ing.calorias * ratio * 10) / 10
           : Math.round((4 * ing.proteinas + 4 * ing.carbohidratos + 9 * ing.grasas) * 10) / 10;
-      return crearIngrediente(ing.id, ing.nombre, ing.gramos, v);
+      return crearIngrediente(ing.id, ing.nombre, ing.gramos, v, ing.categoria);
     });
     totales = sumar(ingredientes);
     confianza = bajarConfianza(confianza);

@@ -61,6 +61,7 @@ export type Ingrediente = Nutrientes & {
   gramos: number;
   /** Values per gram, used to rescale when grams change. */
   por_gramo: Nutrientes;
+  categoria?: string;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -70,10 +71,11 @@ export function crearIngrediente(
   nombre: string,
   gramos: number,
   valores: Nutrientes,
+  categoria?: string,
 ): Ingrediente {
   const por_gramo = vacio();
   for (const k of NUTRIENTES) por_gramo[k] = gramos > 0 ? valores[k] / gramos : 0;
-  return { id, nombre, gramos, por_gramo, ...valores };
+  return { id, nombre, gramos, por_gramo, ...valores, ...(categoria ? { categoria } : {}) };
 }
 
 export function escalarIngrediente(ing: Ingrediente, gramos: number): Ingrediente {
@@ -256,4 +258,172 @@ export function metasSugeridas(p: DatosPerfil) {
 export function caloriasRestantes(consumidas: number, limite: number) {
   const restante = Math.round(limite - consumidas);
   return { restante: Math.max(0, restante), excedido: restante < 0 ? -restante : 0 };
+}
+
+// ---------- Categorías de alimentos ----------
+
+export const CATEGORIAS = [
+  "Carnes",
+  "Pescados y mariscos",
+  "Lácteos y huevos",
+  "Verduras",
+  "Frutas",
+  "Cereales y panificados",
+  "Legumbres",
+  "Frutos secos y semillas",
+  "Dulces y snacks",
+  "Bebidas",
+  "Aceites y grasas",
+  "Otros",
+] as const;
+export type Categoria = (typeof CATEGORIAS)[number];
+
+const sinTildes = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
+/** Any value outside the closed list becomes "Otros". */
+export function normalizarCategoria(v: unknown): Categoria {
+  if (typeof v !== "string") return "Otros";
+  const k = sinTildes(v);
+  return CATEGORIAS.find((c) => sinTildes(c) === k) ?? "Otros";
+}
+
+type ComidaParaStats = { fecha: string; momento: string; calorias: number; proteinas: number; carbohidratos: number; grasas: number; ingredientes: unknown };
+
+/**
+ * Splits each meal's registered kcal across its categories, proportional to ingredient kcal,
+ * so the per-category total always equals the logged kcal.
+ */
+export function caloriasPorCategoria(comidas: Pick<ComidaParaStats, "calorias" | "ingredientes">[]): Record<Categoria, number> {
+  const out = Object.fromEntries(CATEGORIAS.map((c) => [c, 0])) as Record<Categoria, number>;
+  for (const c of comidas) {
+    const total = Number(c.calorias) || 0;
+    if (total <= 0) continue;
+    const ings = Array.isArray(c.ingredientes) ? (c.ingredientes as { calorias?: unknown; categoria?: unknown }[]) : [];
+    const parciales = new Map<Categoria, number>();
+    let suma = 0;
+    for (const i of ings) {
+      const k = Math.max(0, Number(i?.calorias) || 0);
+      if (k <= 0) continue;
+      const cat = normalizarCategoria(i?.categoria);
+      parciales.set(cat, (parciales.get(cat) ?? 0) + k);
+      suma += k;
+    }
+    if (suma <= 0) {
+      out.Otros += total;
+      continue;
+    }
+    for (const [cat, k] of parciales) out[cat] += (total * k) / suma;
+  }
+  return out;
+}
+
+/** Top N slices; the rest grouped as "Otras". */
+export function topCategorias(m: Record<string, number>, n = 5): { nombre: string; kcal: number; pct: number }[] {
+  const total = Object.values(m).reduce((s, v) => s + v, 0);
+  if (total <= 0) return [];
+  const orden = Object.entries(m).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const top = orden.slice(0, n);
+  const resto = orden.slice(n).reduce((s, [, v]) => s + v, 0);
+  const filas = top.map(([nombre, kcal]) => ({ nombre, kcal }));
+  if (resto > 0) filas.push({ nombre: "Otras", kcal: resto });
+  return filas.map((f) => ({ ...f, pct: (f.kcal / total) * 100 }));
+}
+
+// ---------- Estadísticas ----------
+
+export type Periodo = "semana" | "mes";
+
+export function rangoPeriodo(tipo: Periodo, ref: string): { desde: string; hasta: string; dias: string[] } {
+  let desde: string;
+  let hasta: string;
+  if (tipo === "semana") {
+    desde = inicioSemana(ref);
+    hasta = sumarDias(desde, 6);
+  } else {
+    desde = `${ref.slice(0, 7)}-01`;
+    const [y = 1970, m = 1] = ref.split("-").map(Number);
+    const ult = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    hasta = `${ref.slice(0, 7)}-${String(ult).padStart(2, "0")}`;
+  }
+  const dias: string[] = [];
+  for (let f = desde; f <= hasta; f = sumarDias(f, 1)) dias.push(f);
+  return { desde, hasta, dias };
+}
+
+export function moverPeriodo(tipo: Periodo, ref: string, dir: 1 | -1): string {
+  if (tipo === "semana") return sumarDias(inicioSemana(ref), 7 * dir);
+  const [y = 1970, m = 1] = ref.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + dir, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+/** Average over every day with at least one meal (today included). Empty days don't count as 0. */
+export function promedioDiario(comidas: Pick<ComidaParaStats, "fecha" | "calorias">[]): { promedio: number; dias: number } {
+  const porDia = new Map<string, number>();
+  for (const c of comidas) porDia.set(c.fecha, (porDia.get(c.fecha) ?? 0) + (Number(c.calorias) || 0));
+  const dias = porDia.size;
+  if (!dias) return { promedio: 0, dias: 0 };
+  let s = 0;
+  for (const v of porDia.values()) s += v;
+  return { promedio: s / dias, dias };
+}
+
+/** Macro kcal (4/4/9) scaled so the segments add up to the day's real kcal. */
+export function macrosEscalados(t: { calorias: number; proteinas: number; carbohidratos: number; grasas: number }) {
+  const p = 4 * t.proteinas;
+  const c = 4 * t.carbohidratos;
+  const g = 9 * t.grasas;
+  const m = p + c + g;
+  if (m <= 0 || t.calorias <= 0) return { proteinas: 0, carbohidratos: 0, grasas: 0 };
+  const f = t.calorias / m;
+  return { proteinas: p * f, carbohidratos: c * f, grasas: g * f };
+}
+
+// ---------- Peso ----------
+
+export const PESO_MIN = 25;
+export const PESO_MAX = 300;
+
+export function validarPeso(kg: number, fecha: string, hoy: string): string | null {
+  if (!Number.isFinite(kg) || kg < PESO_MIN || kg > PESO_MAX) return `Ingresá un peso entre ${PESO_MIN} y ${PESO_MAX} kg.`;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return "Elegí una fecha válida.";
+  if (fecha > hoy) return "La fecha no puede ser futura.";
+  return null;
+}
+
+/** Days since epoch for a YYYY-MM-DD (for a true time axis). */
+export function diaNumero(ymd: string): number {
+  const [y = 1970, m = 1, d = 1] = ymd.split("-").map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+}
+export function ymdDeDiaNumero(n: number): string {
+  const d = new Date(n * 86400000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function filtrarRangoPeso<T extends { fecha: string }>(regs: T[], rango: "1m" | "3m" | "todo", hoy: string): T[] {
+  if (rango === "todo") return regs;
+  const desde = sumarDias(hoy, rango === "1m" ? -30 : -91);
+  return regs.filter((r) => r.fecha >= desde);
+}
+
+/** Last minus first, sorted by date. Negative = lost weight. */
+export function diferenciaPeso(regs: { fecha: string; peso_kg: number }[]): number | null {
+  if (regs.length < 2) return null;
+  const o = [...regs].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return Math.round((o[o.length - 1]!.peso_kg - o[0]!.peso_kg) * 10) / 10;
+}
+
+export function fmtDiferencia(d: number): string {
+  return `${d > 0 ? "+" : d < 0 ? "-" : ""}${fmt(Math.abs(d), 1)} kg`;
+}
+
+/** Y domain that doesn't start at 0: min/max of data and goal, with margin. */
+export function dominioPeso(valores: number[], meta?: number | null): [number, number] {
+  const vs = [...valores, ...(meta ? [meta] : [])].filter(Number.isFinite);
+  if (!vs.length) return [0, 100];
+  const min = Math.min(...vs);
+  const max = Math.max(...vs);
+  const margen = Math.max(1, (max - min) * 0.15);
+  return [Math.floor(min - margen), Math.ceil(max + margen)];
 }
