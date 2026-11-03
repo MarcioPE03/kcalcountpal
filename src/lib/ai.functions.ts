@@ -165,7 +165,7 @@ export const transcribirAudio = createServerFn({ method: "POST" })
       const bytes = Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0));
       if (!bytes.length) return { ok: false, mensaje: "No se grabó audio." };
       const ext = data.mime.includes("webm") ? "webm" : data.mime.includes("mp4") ? "m4a" : data.mime.includes("ogg") ? "ogg" : "wav";
-      const mime = data.mime.split(";")[0];
+      const mime = data.mime.split(";")[0] ?? "audio/webm";
       const form = new FormData();
       form.append("model", TRANSCRIBE_MODEL);
       form.append("file", new File([bytes], `audio.${ext}`, { type: mime }));

@@ -96,7 +96,7 @@ export function AnalizarFlow({ conFoto, momento }: { conFoto: boolean; momento: 
     }
   }
 
-  if (cargando) return <Analizando foto={foto?.dataUrl} />;
+  if (cargando) return <Analizando foto={foto?.dataUrl ?? null} />;
 
   const puede = conFoto ? !!foto : desc.trim().length > 2;
 

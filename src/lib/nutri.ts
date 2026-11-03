@@ -143,14 +143,14 @@ export function horaLocal(d: Date = new Date(), zona: string = zonaDispositivo()
 }
 
 export function sumarDias(ymd: string, n: number): string {
-  const [y, m, d] = ymd.split("-").map(Number);
+  const [y = 1970, m = 1, d = 1] = ymd.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d + n));
   return dt.toISOString().slice(0, 10);
 }
 
 /** Monday of the week containing ymd. */
 export function inicioSemana(ymd: string): string {
-  const [y, m, d] = ymd.split("-").map(Number);
+  const [y = 1970, m = 1, d = 1] = ymd.split("-").map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = domingo
   return sumarDias(ymd, dow === 0 ? -6 : 1 - dow);
 }
@@ -173,7 +173,7 @@ export function fmt(n: number, dec = 0): string {
 }
 
 const ymdToDate = (ymd: string) => {
-  const [y, m, d] = ymd.split("-").map(Number);
+  const [y = 1970, m = 1, d = 1] = ymd.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d, 12));
 };
 

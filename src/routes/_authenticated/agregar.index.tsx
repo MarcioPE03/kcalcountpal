@@ -61,7 +61,7 @@ function Agregar() {
       return data.length;
     },
     onSuccess: (n) => {
-      if (!n) return toast.info("No hay comidas para copiar del día anterior.");
+      if (!n) { toast.info("No hay comidas para copiar del día anterior."); return; }
       qc.invalidateQueries({ queryKey: ["comidas"] });
       qc.invalidateQueries({ queryKey: ["comidas-rango"] });
       toast.success(`${n} ${n === 1 ? "comida copiada" : "comidas copiadas"}`);

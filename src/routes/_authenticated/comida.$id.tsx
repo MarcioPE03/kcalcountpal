@@ -150,7 +150,7 @@ function Editar({ c, onDone }: { c: Comida; onDone: () => void }) {
       ...nutrientesAColumnas(t),
     }).eq("id", c.id);
     setGuardando(false);
-    if (error) return toast.error("No se pudo guardar.");
+    if (error) { toast.error("No se pudo guardar."); return; }
     qc.invalidateQueries({ queryKey: ["comida", c.id] });
     qc.invalidateQueries({ queryKey: ["comidas"] });
     qc.invalidateQueries({ queryKey: ["comidas-rango"] });
