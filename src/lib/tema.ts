@@ -1,8 +1,8 @@
 export type Tema = "claro" | "oscuro" | "sistema";
 
 export function leerTema(): Tema {
-  if (typeof window === "undefined") return "sistema";
-  return (localStorage.getItem("tema") as Tema) || "sistema";
+  if (typeof window === "undefined") return "claro";
+  return (localStorage.getItem("tema") as Tema) || "claro";
 }
 
 export function aplicarTema(t: Tema = leerTema()) {

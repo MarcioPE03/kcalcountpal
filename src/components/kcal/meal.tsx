@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Camera, MessageSquareText, PenLine, Copy } from "lucide-react";
 import type { Comida } from "@/lib/data";
-import { fmt } from "@/lib/nutri";
+import { MOMENTOS, fmt } from "@/lib/nutri";
 
 const ICONO = { foto: Camera, texto: MessageSquareText, manual: PenLine, copia: Copy } as const;
 
@@ -17,7 +17,12 @@ export function MealRow({ c }: { c: Comida }) {
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{c.nombre}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate font-medium">{c.nombre}</p>
+          <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-foreground">
+            {c.momento === "snack" ? "Snack" : (MOMENTOS.find((m) => m.key === c.momento)?.label ?? c.momento)}
+          </span>
+        </div>
         <p className="text-xs text-muted-foreground tabular">
           <span className="text-protein">P {fmt(Number(c.proteinas_g))}</span> ·{" "}
           <span className="text-carbs">C {fmt(Number(c.carbohidratos_g))}</span> ·{" "}

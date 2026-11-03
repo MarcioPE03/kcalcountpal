@@ -91,3 +91,19 @@ describe("formato y restantes", () => {
     expect(limiteAlcanzado(5, 5)).toBe(true);
   });
 });
+
+import { fechaDeCalendario, calendarioDeFecha, tituloLista, fechaLocal as fl } from "./nutri";
+describe("fechas del calendario", () => {
+  it("elegir el día 3 devuelve 3, no 2 ni 4", () => {
+    const f = fechaDeCalendario(new Date(2026, 10, 3));
+    expect(f).toBe("2026-11-03");
+    expect(fechaDeCalendario(calendarioDeFecha("2026-11-03"))).toBe("2026-11-03");
+  });
+  it("hoy se calcula en Buenos Aires (22 h del 3 = día 3, no 4)", () => {
+    expect(fl(new Date("2026-11-04T01:00:00Z"))).toBe("2026-11-03");
+  });
+  it("título de la lista", () => {
+    expect(tituloLista("2026-11-03", "2026-11-03")).toBe("Comidas de hoy");
+    expect(tituloLista("2026-11-02", "2026-11-03")).toBe("Lunes 2 de noviembre");
+  });
+});

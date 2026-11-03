@@ -8,3 +8,10 @@
 - [x] Revisión editable y guardado (foto subida al guardar)
 - [x] Detalle de comida, detalle del día, progreso semanal
 - [x] Tests de reglas
+
+## Rediseño Hoy
+- [x] Tarjeta con degradado + fila de macros
+- [x] Lista única con chip de momento y título por fecha
+- [x] 3 pestañas + botón + solo en Hoy
+- [x] Calendario (drawer mobile / popover desktop) con fechas Buenos Aires
+- [x] Colores: claro por defecto, oscuro verde-gris, macros saturados
