@@ -15,6 +15,9 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAgregarIndexRouteImport } from './routes/_authenticated/agregar.index'
 import { Route as AuthenticatedAgregarDescribirRouteImport } from './routes/_authenticated/agregar.describir'
 import { Route as AuthenticatedAgregarFotoRouteImport } from './routes/_authenticated/agregar.foto'
+import { Route as AuthenticatedAgregarManualRouteImport } from './routes/_authenticated/agregar.manual'
+import { Route as AuthenticatedAgregarRevisarRouteImport } from './routes/_authenticated/agregar.revisar'
+import { Route as AuthenticatedComidaIdRouteImport } from './routes/_authenticated/comida.$id'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -48,12 +51,32 @@ const AuthenticatedAgregarFotoRoute =
     path: '/agregar/foto',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAgregarManualRoute =
+  AuthenticatedAgregarManualRouteImport.update({
+    id: '/agregar/manual',
+    path: '/agregar/manual',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAgregarRevisarRoute =
+  AuthenticatedAgregarRevisarRouteImport.update({
+    id: '/agregar/revisar',
+    path: '/agregar/revisar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedComidaIdRoute = AuthenticatedComidaIdRouteImport.update({
+  id: '/comida/$id',
+  path: '/comida/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
+  '/agregar/manual': typeof AuthenticatedAgregarManualRoute
+  '/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
+  '/comida/$id': typeof AuthenticatedComidaIdRoute
   '/agregar/': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +84,9 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
+  '/agregar/manual': typeof AuthenticatedAgregarManualRoute
+  '/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
+  '/comida/$id': typeof AuthenticatedComidaIdRoute
   '/agregar': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRoutesById {
@@ -70,14 +96,32 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/_authenticated/agregar/foto': typeof AuthenticatedAgregarFotoRoute
+  '/_authenticated/agregar/manual': typeof AuthenticatedAgregarManualRoute
+  '/_authenticated/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
+  '/_authenticated/comida/$id': typeof AuthenticatedComidaIdRoute
   '/_authenticated/agregar/': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/agregar/describir' | '/agregar/foto' | '/agregar/'
+    | '/'
+    | '/auth'
+    | '/agregar/describir'
+    | '/agregar/foto'
+    | '/agregar/manual'
+    | '/agregar/revisar'
+    | '/comida/$id'
+    | '/agregar/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/' | '/agregar/describir' | '/agregar/foto' | '/agregar'
+  to:
+    | '/auth'
+    | '/'
+    | '/agregar/describir'
+    | '/agregar/foto'
+    | '/agregar/manual'
+    | '/agregar/revisar'
+    | '/comida/$id'
+    | '/agregar'
   id:
     | '__root__'
     | '/_authenticated'
@@ -85,6 +129,9 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/agregar/describir'
     | '/_authenticated/agregar/foto'
+    | '/_authenticated/agregar/manual'
+    | '/_authenticated/agregar/revisar'
+    | '/_authenticated/comida/$id'
     | '/_authenticated/agregar/'
   fileRoutesById: FileRoutesById
 }
@@ -137,6 +184,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgregarFotoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agregar/manual': {
+      id: '/_authenticated/agregar/manual'
+      path: '/agregar/manual'
+      fullPath: '/agregar/manual'
+      preLoaderRoute: typeof AuthenticatedAgregarManualRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agregar/revisar': {
+      id: '/_authenticated/agregar/revisar'
+      path: '/agregar/revisar'
+      fullPath: '/agregar/revisar'
+      preLoaderRoute: typeof AuthenticatedAgregarRevisarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/comida/$id': {
+      id: '/_authenticated/comida/$id'
+      path: '/comida/$id'
+      fullPath: '/comida/$id'
+      preLoaderRoute: typeof AuthenticatedComidaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -144,6 +212,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAgregarDescribirRoute: typeof AuthenticatedAgregarDescribirRoute
   AuthenticatedAgregarFotoRoute: typeof AuthenticatedAgregarFotoRoute
+  AuthenticatedAgregarManualRoute: typeof AuthenticatedAgregarManualRoute
+  AuthenticatedAgregarRevisarRoute: typeof AuthenticatedAgregarRevisarRoute
+  AuthenticatedComidaIdRoute: typeof AuthenticatedComidaIdRoute
   AuthenticatedAgregarIndexRoute: typeof AuthenticatedAgregarIndexRoute
 }
 
@@ -151,6 +222,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAgregarDescribirRoute: AuthenticatedAgregarDescribirRoute,
   AuthenticatedAgregarFotoRoute: AuthenticatedAgregarFotoRoute,
+  AuthenticatedAgregarManualRoute: AuthenticatedAgregarManualRoute,
+  AuthenticatedAgregarRevisarRoute: AuthenticatedAgregarRevisarRoute,
+  AuthenticatedComidaIdRoute: AuthenticatedComidaIdRoute,
   AuthenticatedAgregarIndexRoute: AuthenticatedAgregarIndexRoute,
 }
 
