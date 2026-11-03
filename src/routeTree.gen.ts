@@ -13,6 +13,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAgregarIndexRouteImport } from './routes/_authenticated/agregar.index'
+import { Route as AuthenticatedAgregarDescribirRouteImport } from './routes/_authenticated/agregar.describir'
+import { Route as AuthenticatedAgregarFotoRouteImport } from './routes/_authenticated/agregar.foto'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -34,15 +36,31 @@ const AuthenticatedAgregarIndexRoute =
     path: '/agregar/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAgregarDescribirRoute =
+  AuthenticatedAgregarDescribirRouteImport.update({
+    id: '/agregar/describir',
+    path: '/agregar/describir',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAgregarFotoRoute =
+  AuthenticatedAgregarFotoRouteImport.update({
+    id: '/agregar/foto',
+    path: '/agregar/foto',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
+  '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/': typeof AuthenticatedIndexRoute
+  '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
+  '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRoutesById {
@@ -50,18 +68,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
+  '/_authenticated/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/_authenticated/agregar/': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/agregar/'
+  fullPaths:
+    '/' | '/auth' | '/agregar/describir' | '/agregar/foto' | '/agregar/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/' | '/agregar'
+  to: '/auth' | '/' | '/agregar/describir' | '/agregar/foto' | '/agregar'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/'
+    | '/_authenticated/agregar/describir'
+    | '/_authenticated/agregar/foto'
     | '/_authenticated/agregar/'
   fileRoutesById: FileRoutesById
 }
@@ -100,16 +123,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgregarIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agregar/describir': {
+      id: '/_authenticated/agregar/describir'
+      path: '/agregar/describir'
+      fullPath: '/agregar/describir'
+      preLoaderRoute: typeof AuthenticatedAgregarDescribirRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agregar/foto': {
+      id: '/_authenticated/agregar/foto'
+      path: '/agregar/foto'
+      fullPath: '/agregar/foto'
+      preLoaderRoute: typeof AuthenticatedAgregarFotoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAgregarDescribirRoute: typeof AuthenticatedAgregarDescribirRoute
+  AuthenticatedAgregarFotoRoute: typeof AuthenticatedAgregarFotoRoute
   AuthenticatedAgregarIndexRoute: typeof AuthenticatedAgregarIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAgregarDescribirRoute: AuthenticatedAgregarDescribirRoute,
+  AuthenticatedAgregarFotoRoute: AuthenticatedAgregarFotoRoute,
   AuthenticatedAgregarIndexRoute: AuthenticatedAgregarIndexRoute,
 }
 
