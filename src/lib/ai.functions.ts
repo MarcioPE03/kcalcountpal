@@ -18,7 +18,13 @@ Reglas:
 6. kcal_min y kcal_max: rango plausible del total según la confianza (más angosto si es alta).
 7. nombre_plato corto en español rioplatense (ej: "Milanesa con puré").
 8. Si la imagen NO muestra comida ni bebida (o no se puede identificar) y no hay descripción útil, devolvé es_comida=false, motivo_rechazo con una frase breve, e ingredientes vacío.
-9. nota: una frase breve opcional con supuestos importantes (o null).`;
+9. nota: una frase breve opcional con supuestos importantes (o null).
+10. categoria de CADA ingrediente, exactamente una de esta lista cerrada: Carnes, Pescados y mariscos, Lácteos y huevos, Verduras, Frutas, Cereales y panificados, Legumbres, Frutos secos y semillas, Dulces y snacks, Bebidas, Aceites y grasas, Otros.
+   Clasificá por ingrediente, no por plato. Ejemplos argentinos:
+   - Milanesa: carne (Carnes) + pan rallado (Cereales y panificados) + huevo (Lácteos y huevos) + aceite (Aceites y grasas).
+   - Empanada: masa (Cereales y panificados) + relleno de carne (Carnes).
+   - Dulce de leche, alfajores, facturas, medialunas: Dulces y snacks.
+   - Mate, café, gaseosa, jugo: Bebidas (el azúcar agregado: Dulces y snacks).`;
 
 function errorDeGateway(e: unknown): AnalisisRespuesta {
   const status =

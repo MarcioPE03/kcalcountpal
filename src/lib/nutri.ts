@@ -71,10 +71,11 @@ export function crearIngrediente(
   nombre: string,
   gramos: number,
   valores: Nutrientes,
+  categoria?: string,
 ): Ingrediente {
   const por_gramo = vacio();
   for (const k of NUTRIENTES) por_gramo[k] = gramos > 0 ? valores[k] / gramos : 0;
-  return { id, nombre, gramos, por_gramo, ...valores };
+  return { id, nombre, gramos, por_gramo, ...valores, ...(categoria ? { categoria } : {}) };
 }
 
 export function escalarIngrediente(ing: Ingrediente, gramos: number): Ingrediente {
