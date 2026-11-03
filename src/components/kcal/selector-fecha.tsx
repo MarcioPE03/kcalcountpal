@@ -30,6 +30,7 @@ export function SelectorFecha({ fecha, hoy, onChange, children }: { fecha: strin
       today={calendarioDeFecha(hoy)}
       disabled={{ after: calendarioDeFecha(hoy) }}
       endMonth={calendarioDeFecha(hoy)}
+      classNames={{ today: "rounded-md font-bold text-primary ring-1 ring-primary/50" }}
       modifiers={{ conComidas }}
       modifiersClassNames={{
         conComidas:
