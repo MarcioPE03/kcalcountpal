@@ -30,3 +30,15 @@
 - Agregaciones puras (rango de período, promedio, totales por momento/categoría, kcal por macro, diferencia de peso, filtro de rango) en `src/lib/nutri.ts` con tests: semana lunes–domingo en hora BA, "Otros" por defecto, macros 4/4/9, diferencia negativa y positiva.
 - Funciones de datos nuevas en `src/lib/data.ts` (pesos CRUD, comidas por rango, peso meta).
 - Tabs de shadcn en `progreso.tsx`, componentes `PesoTab` y `EstadisticasTab`; Recharts ya disponible o se agrega.
+
+## Ajustes incorporados
+1. Gráfico de peso: eje X temporal (distancia proporcional a los días reales). Eje Y no arranca en cero: mínimo/máximo de los datos y del peso meta, con margen.
+2. Calorías por categoría: las kcal totales de cada comida se reparten entre sus categorías en proporción a las kcal de cada ingrediente; la suma siempre coincide con lo registrado. Sin ingredientes o sin categoría: todo a "Otros".
+3. Ingesta nutricional: segmentos 4/4/9 escalados para que cada barra sume las kcal reales del día; además % de cada macro sobre el período.
+4. Dona de categorías: top 5-6 y el resto agrupado en "Otras"; paleta propia distinta de los colores de macros; leyenda con %.
+5. IA: categoría fuera de la lista se convierte a "Otros" sin rechazar el análisis. Prompt con ejemplos argentinos (milanesa = carne + pan rallado + huevo + aceite; empanada = masa + relleno; dulce de leche, alfajores, facturas = dulces; mate = bebidas).
+6. Peso: rango 25-300 kg, fecha no futura, confirmación antes de borrar. "Hoy" en hora de Buenos Aires sin toISOString(), con test.
+7. Fuente única: ninguna pantalla (Perfil y onboarding incluidos) escribe en profiles.peso_kg; toda carga de peso crea o actualiza el registro del día en pesos.
+8. Estadísticas: vista mensual con marca en el eje X cada 5 días; estados vacíos amables; promedio sobre todos los días con al menos una comida (hoy incluido), días sin comidas no cuentan como 0; debajo "Promedio de N días registrados".
+
+Tests adicionales: reparto proporcional por categoría, escalado de macros, promedio sin días vacíos, normalización de categoría inválida, validación de peso.
