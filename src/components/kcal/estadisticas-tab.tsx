@@ -89,7 +89,7 @@ export function EstadisticasTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
                   <XAxis dataKey="etiqueta" {...(ticksMes ? { ticks: ticksMes } : {})} interval={0} tickLine={false} axisLine={false} tick={tick} />
-                  <YAxis tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
+                  <YAxis domain={[0, (max: number) => Math.ceil(Math.max(max, limite * 1.1) / 100) * 100]} tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
                   <ReferenceLine y={limite} stroke="var(--accent)" strokeDasharray="4 4" />
                   <Bar dataKey="calorias" radius={[6, 6, 6, 6]} animationDuration={900}>
                     {porDia.map((d) => <Cell key={d.f} fill={d.calorias > limite ? "var(--over)" : "var(--primary)"} />)}
@@ -165,7 +165,7 @@ function Dona({ datos }: { datos: { nombre: string; kcal: number; pct: number; c
       <div className="h-40 w-40 shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={datos} dataKey="kcal" nameKey="nombre" innerRadius="60%" outerRadius="95%" paddingAngle={2} stroke="none" animationDuration={900}>
+            <Pie data={datos} dataKey="kcal" nameKey="nombre" innerRadius="60%" outerRadius="95%" paddingAngle={datos.length > 1 ? 2 : 0} stroke="none" animationDuration={900}>
               {datos.map((d) => <Cell key={d.nombre} fill={d.color} />)}
             </Pie>
           </PieChart>
