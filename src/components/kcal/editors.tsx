@@ -1,5 +1,5 @@
 import { Mic, Plus, Square, Trash2, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -100,7 +100,7 @@ export function NumberInput({
   className,
   ...rest
 }: { value: number; onChange: (n: number) => void; className?: string } & Omit<
-  React.ComponentProps<"input">,
+  ComponentProps<"input">,
   "value" | "onChange"
 >) {
   const [txt, setTxt] = useState(fmt(value, 1).replace(/\./g, ""));
