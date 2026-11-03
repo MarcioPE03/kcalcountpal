@@ -4,10 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDictado } from "@/hooks/use-dictado";
 import { cn } from "@/lib/utils";
 import {
+  CATEGORIAS,
   MOMENTOS,
+  normalizarCategoria,
   NUTRIENTES,
   NUTRIENTE_LABEL,
   NUTRIENTE_UNIDAD,
@@ -19,6 +22,21 @@ import {
   type Momento,
   type Nutrientes,
 } from "@/lib/nutri";
+
+export function CategoriaSelect({ value, onChange, className }: { value?: string; onChange: (c: string) => void; className?: string }) {
+  return (
+    <Select value={normalizarCategoria(value)} onValueChange={onChange}>
+      <SelectTrigger className={cn("h-8 w-auto gap-1 rounded-full text-xs", className)} aria-label="Categoría">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {CATEGORIAS.map((c) => (
+          <SelectItem key={c} value={c}>{c}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function MomentoPicker({ value, onChange }: { value: Momento; onChange: (m: Momento) => void }) {
   return (
@@ -162,11 +180,17 @@ export function IngredientesEditor({
               <Trash2 className="size-4" />
             </button>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground tabular">
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground tabular">
             {fmt(ing.calorias)} kcal · <span className="text-protein">P {fmt(ing.proteinas, 1)}</span> ·{" "}
             <span className="text-carbs">C {fmt(ing.carbohidratos, 1)}</span> ·{" "}
             <span className="text-fat">G {fmt(ing.grasas, 1)}</span>
           </p>
+          <CategoriaSelect
+            value={ing.categoria}
+            onChange={(categoria) => onChange(items.map((i) => (i.id === ing.id ? { ...i, categoria } : i)))}
+          />
+          </div>
         </div>
       ))}
       {nuevo ? (
@@ -190,12 +214,14 @@ function NuevoIngrediente({ onAdd, onCancel }: { onAdd: (i: Ingrediente) => void
   const [nombre, setNombre] = useState("");
   const [gramos, setGramos] = useState(100);
   const [v, setV] = useState<Nutrientes>(vacio());
+  const [categoria, setCategoria] = useState("Otros");
   return (
     <div className="space-y-3 rounded-2xl border border-dashed bg-card p-3">
       <div className="flex gap-2">
         <Input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <NumberInput value={gramos} onChange={setGramos} className="w-24" aria-label="Gramos" />
       </div>
+      <div className="flex items-center gap-2"><Label className="text-xs text-muted-foreground">Categoría</Label><CategoriaSelect value={categoria} onChange={setCategoria} /></div>
       <NutrientesForm value={v} onChange={setV} compacto />
       <div className="flex gap-2">
         <Button type="button" variant="ghost" className="flex-1" onClick={onCancel}>
@@ -205,7 +231,7 @@ function NuevoIngrediente({ onAdd, onCancel }: { onAdd: (i: Ingrediente) => void
           type="button"
           className="flex-1"
           disabled={!nombre.trim()}
-          onClick={() => onAdd(crearIngrediente(crypto.randomUUID(), nombre.trim(), gramos, v))}
+          onClick={() => onAdd(crearIngrediente(crypto.randomUUID(), nombre.trim(), gramos, v, categoria))}
         >
           Agregar
         </Button>

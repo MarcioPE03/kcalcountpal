@@ -143,7 +143,7 @@ function Editar({ c, onDone }: { c: Comida; onDone: () => void }) {
     const { error } = await supabase.from("comidas").update({
       nombre: nombre.trim() || c.nombre,
       momento,
-      ingredientes: (conIngredientes ? items : []) as never,
+      ingredientes: (conIngredientes ? items : c.ingredientes) as never,
       kcal_min: c.kcal_min != null ? Math.round(Number(c.kcal_min) * ratio) : null,
       kcal_max: c.kcal_max != null ? Math.round(Number(c.kcal_max) * ratio) : null,
       updated_at: new Date().toISOString(),

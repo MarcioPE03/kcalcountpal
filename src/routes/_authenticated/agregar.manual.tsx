@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
-import { MomentoPicker, NutrientesForm } from "@/components/kcal/editors";
+import { CategoriaSelect, MomentoPicker, NutrientesForm } from "@/components/kcal/editors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ function Manual() {
   const [nombre, setNombre] = useState("");
   const [momento, setMomento] = useState<Momento>(m0 ?? momentoPorHora(horaLocal()));
   const [v, setV] = useState(vacio());
+  const [categoria, setCategoria] = useState("Otros");
   const [guardando, setGuardando] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ function Manual() {
   async function guardar() {
     setGuardando(true);
     try {
-      await crearComida({ fecha, momento, nombre: nombre.trim(), origen: "manual", ...nutrientesAColumnas(v) });
+      await crearComida({ fecha, momento, nombre: nombre.trim(), origen: "manual", ingredientes: [{ nombre: nombre.trim(), categoria, calorias: v.calorias }] as never, ...nutrientesAColumnas(v) });
       qc.invalidateQueries({ queryKey: ["comidas"] });
       qc.invalidateQueries({ queryKey: ["comidas-rango"] });
       qc.invalidateQueries({ queryKey: ["recientes"] });
@@ -63,6 +64,10 @@ function Manual() {
         <div className="space-y-1.5">
           <Label>Momento</Label>
           <MomentoPicker value={momento} onChange={setMomento} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Categoría</Label>
+          <div><CategoriaSelect value={categoria} onChange={setCategoria} className="h-10 text-sm" /></div>
         </div>
         <NutrientesForm value={v} onChange={setV} />
       </Card>
