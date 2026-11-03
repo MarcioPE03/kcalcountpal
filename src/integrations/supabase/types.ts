@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analisis_ia: {
+        Row: {
+          created_at: string
+          estado: string
+          fecha_local: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          fecha_local: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          fecha_local?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      comidas: {
+        Row: {
+          azucares_g: number
+          calorias: number
+          carbohidratos_g: number
+          confianza: string | null
+          created_at: string
+          descripcion: string | null
+          fecha: string
+          fibra_g: number
+          foto_path: string | null
+          grasas_g: number
+          grasas_saturadas_g: number
+          id: string
+          ingredientes: Json
+          kcal_max: number | null
+          kcal_min: number | null
+          momento: string
+          nombre: string
+          origen: string
+          proteinas_g: number
+          sodio_mg: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          azucares_g?: number
+          calorias?: number
+          carbohidratos_g?: number
+          confianza?: string | null
+          created_at?: string
+          descripcion?: string | null
+          fecha: string
+          fibra_g?: number
+          foto_path?: string | null
+          grasas_g?: number
+          grasas_saturadas_g?: number
+          id?: string
+          ingredientes?: Json
+          kcal_max?: number | null
+          kcal_min?: number | null
+          momento: string
+          nombre: string
+          origen?: string
+          proteinas_g?: number
+          sodio_mg?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          azucares_g?: number
+          calorias?: number
+          carbohidratos_g?: number
+          confianza?: string | null
+          created_at?: string
+          descripcion?: string | null
+          fecha?: string
+          fibra_g?: number
+          foto_path?: string | null
+          grasas_g?: number
+          grasas_saturadas_g?: number
+          id?: string
+          ingredientes?: Json
+          kcal_max?: number | null
+          kcal_min?: number | null
+          momento?: string
+          nombre?: string
+          origen?: string
+          proteinas_g?: number
+          sodio_mg?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      metas_diarias: {
+        Row: {
+          azucares_g: number | null
+          calorias: number
+          carbohidratos_g: number
+          fibra_g: number | null
+          grasas_g: number
+          grasas_saturadas_g: number | null
+          proteinas_g: number
+          sodio_mg: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          azucares_g?: number | null
+          calorias?: number
+          carbohidratos_g?: number
+          fibra_g?: number | null
+          grasas_g?: number
+          grasas_saturadas_g?: number | null
+          proteinas_g?: number
+          sodio_mg?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          azucares_g?: number | null
+          calorias?: number
+          carbohidratos_g?: number
+          fibra_g?: number | null
+          grasas_g?: number
+          grasas_saturadas_g?: number | null
+          proteinas_g?: number
+          sodio_mg?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          altura_cm: number | null
+          created_at: string
+          edad: number | null
+          id: string
+          limite_analisis_diario: number
+          nivel_actividad: string | null
+          nombre: string | null
+          objetivo: string | null
+          onboarding_completo: boolean
+          peso_kg: number | null
+          sexo: string | null
+        }
+        Insert: {
+          altura_cm?: number | null
+          created_at?: string
+          edad?: number | null
+          id: string
+          limite_analisis_diario?: number
+          nivel_actividad?: string | null
+          nombre?: string | null
+          objetivo?: string | null
+          onboarding_completo?: boolean
+          peso_kg?: number | null
+          sexo?: string | null
+        }
+        Update: {
+          altura_cm?: number | null
+          created_at?: string
+          edad?: number | null
+          id?: string
+          limite_analisis_diario?: number
+          nivel_actividad?: string | null
+          nombre?: string | null
+          objetivo?: string | null
+          onboarding_completo?: boolean
+          peso_kg?: number | null
+          sexo?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
