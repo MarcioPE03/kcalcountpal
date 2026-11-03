@@ -46,27 +46,32 @@ function Onboarding() {
 
   useEffect(() => {
     const p = perfil.data;
-    if (p?.peso_kg) {
+    if (!p) return;
+    ultimoPeso().then((peso) => {
+      if (peso == null && !p.altura_cm) return;
       setD({
-        peso_kg: Number(p.peso_kg), altura_cm: Number(p.altura_cm ?? 170), edad: p.edad ?? 30,
+        peso_kg: peso ?? 70, altura_cm: Number(p.altura_cm ?? 170), edad: p.edad ?? 30,
         sexo: (p.sexo as DatosPerfil["sexo"]) ?? "mujer",
         nivel_actividad: (p.nivel_actividad as DatosPerfil["nivel_actividad"]) ?? "ligero",
         objetivo: (p.objetivo as DatosPerfil["objetivo"]) ?? "mantener",
       });
-    }
+    });
   }, [perfil.data]);
 
-  const valido = d.peso_kg >= 30 && d.peso_kg <= 300 && d.altura_cm >= 120 && d.altura_cm <= 230 && d.edad >= 14 && d.edad <= 100;
+  const valido = d.peso_kg >= PESO_MIN && d.peso_kg <= 300 && d.altura_cm >= 120 && d.altura_cm <= 230 && d.edad >= 14 && d.edad <= 100;
   const s = valido ? metasSugeridas(d) : null;
 
   async function terminar(usar: boolean) {
     setGuardando(true);
     try {
       const id = await uid();
+      const { peso_kg, ...resto } = d;
       const { error } = await supabase.from("profiles").update(
-        usar ? { ...d, onboarding_completo: true } : { onboarding_completo: true },
+        usar ? { ...resto, onboarding_completo: true } : { onboarding_completo: true },
       ).eq("id", id);
       if (error) throw error;
+      if (usar) await guardarPeso(fechaLocal(), peso_kg);
+      qc.invalidateQueries({ queryKey: ["pesos"] });
       if (usar && s) {
         const { error: e2 } = await supabase.from("metas_diarias").upsert({ user_id: id, ...s, updated_at: new Date().toISOString() });
         if (e2) throw e2;

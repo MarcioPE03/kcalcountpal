@@ -206,3 +206,50 @@ export function leerIngredientes(c: Comida): Ingrediente[] {
     return out;
   });
 }
+
+// ---------- Pesos (única fuente de verdad del peso) ----------
+
+export type Peso = Tables<"pesos">;
+
+export const pesosQuery = () =>
+  queryOptions({
+    queryKey: ["pesos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pesos").select("*").order("fecha");
+      if (error) throw error;
+      return data.map((p) => ({ ...p, peso_kg: Number(p.peso_kg) }));
+    },
+  });
+
+/** Creates or updates the weight for that day. Never writes profiles.peso_kg. */
+export async function guardarPeso(fecha: string, peso_kg: number) {
+  const id = await uid();
+  const { error } = await supabase
+    .from("pesos")
+    .upsert({ user_id: id, fecha, peso_kg, updated_at: new Date().toISOString() }, { onConflict: "user_id,fecha" });
+  if (error) throw error;
+}
+
+export async function actualizarPeso(idReg: string, fecha: string, peso_kg: number) {
+  const { error } = await supabase
+    .from("pesos")
+    .update({ fecha, peso_kg, updated_at: new Date().toISOString() })
+    .eq("id", idReg);
+  if (error) throw error;
+}
+
+export async function borrarPeso(idReg: string) {
+  const { error } = await supabase.from("pesos").delete().eq("id", idReg);
+  if (error) throw error;
+}
+
+export async function ultimoPeso(): Promise<number | null> {
+  const { data } = await supabase.from("pesos").select("peso_kg").order("fecha", { ascending: false }).limit(1).maybeSingle();
+  return data ? Number(data.peso_kg) : null;
+}
+
+export async function guardarPesoMeta(kg: number | null) {
+  const id = await uid();
+  const { error } = await supabase.from("profiles").update({ peso_meta_kg: kg }).eq("id", id);
+  if (error) throw error;
+}
