@@ -12,12 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedProgresoRouteImport } from './routes/_authenticated/progreso'
 import { Route as AuthenticatedAgregarIndexRouteImport } from './routes/_authenticated/agregar.index'
 import { Route as AuthenticatedAgregarDescribirRouteImport } from './routes/_authenticated/agregar.describir'
 import { Route as AuthenticatedAgregarFotoRouteImport } from './routes/_authenticated/agregar.foto'
 import { Route as AuthenticatedAgregarManualRouteImport } from './routes/_authenticated/agregar.manual'
 import { Route as AuthenticatedAgregarRevisarRouteImport } from './routes/_authenticated/agregar.revisar'
 import { Route as AuthenticatedComidaIdRouteImport } from './routes/_authenticated/comida.$id'
+import { Route as AuthenticatedDiaFechaRouteImport } from './routes/_authenticated/dia.$fecha'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -31,6 +35,21 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProgresoRoute = AuthenticatedProgresoRouteImport.update({
+  id: '/progreso',
+  path: '/progreso',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAgregarIndexRoute =
@@ -68,37 +87,54 @@ const AuthenticatedComidaIdRoute = AuthenticatedComidaIdRouteImport.update({
   path: '/comida/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDiaFechaRoute = AuthenticatedDiaFechaRouteImport.update({
+  id: '/dia/$fecha',
+  path: '/dia/$fecha',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
+  '/progreso': typeof AuthenticatedProgresoRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
   '/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
   '/comida/$id': typeof AuthenticatedComidaIdRoute
+  '/dia/$fecha': typeof AuthenticatedDiaFechaRoute
   '/agregar/': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
+  '/progreso': typeof AuthenticatedProgresoRoute
   '/': typeof AuthenticatedIndexRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
   '/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
   '/comida/$id': typeof AuthenticatedComidaIdRoute
+  '/dia/$fecha': typeof AuthenticatedDiaFechaRoute
   '/agregar': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/progreso': typeof AuthenticatedProgresoRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/_authenticated/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/_authenticated/agregar/manual': typeof AuthenticatedAgregarManualRoute
   '/_authenticated/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
   '/_authenticated/comida/$id': typeof AuthenticatedComidaIdRoute
+  '/_authenticated/dia/$fecha': typeof AuthenticatedDiaFechaRoute
   '/_authenticated/agregar/': typeof AuthenticatedAgregarIndexRoute
 }
 export interface FileRouteTypes {
@@ -106,32 +142,44 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/onboarding'
+    | '/perfil'
+    | '/progreso'
     | '/agregar/describir'
     | '/agregar/foto'
     | '/agregar/manual'
     | '/agregar/revisar'
     | '/comida/$id'
+    | '/dia/$fecha'
     | '/agregar/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/onboarding'
+    | '/perfil'
+    | '/progreso'
     | '/'
     | '/agregar/describir'
     | '/agregar/foto'
     | '/agregar/manual'
     | '/agregar/revisar'
     | '/comida/$id'
+    | '/dia/$fecha'
     | '/agregar'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/perfil'
+    | '/_authenticated/progreso'
     | '/_authenticated/'
     | '/_authenticated/agregar/describir'
     | '/_authenticated/agregar/foto'
     | '/_authenticated/agregar/manual'
     | '/_authenticated/agregar/revisar'
     | '/_authenticated/comida/$id'
+    | '/_authenticated/dia/$fecha'
     | '/_authenticated/agregar/'
   fileRoutesById: FileRoutesById
 }
@@ -161,6 +209,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/progreso': {
+      id: '/_authenticated/progreso'
+      path: '/progreso'
+      fullPath: '/progreso'
+      preLoaderRoute: typeof AuthenticatedProgresoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/agregar/': {
@@ -205,26 +274,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComidaIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dia/$fecha': {
+      id: '/_authenticated/dia/$fecha'
+      path: '/dia/$fecha'
+      fullPath: '/dia/$fecha'
+      preLoaderRoute: typeof AuthenticatedDiaFechaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedProgresoRoute: typeof AuthenticatedProgresoRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAgregarDescribirRoute: typeof AuthenticatedAgregarDescribirRoute
   AuthenticatedAgregarFotoRoute: typeof AuthenticatedAgregarFotoRoute
   AuthenticatedAgregarManualRoute: typeof AuthenticatedAgregarManualRoute
   AuthenticatedAgregarRevisarRoute: typeof AuthenticatedAgregarRevisarRoute
   AuthenticatedComidaIdRoute: typeof AuthenticatedComidaIdRoute
+  AuthenticatedDiaFechaRoute: typeof AuthenticatedDiaFechaRoute
   AuthenticatedAgregarIndexRoute: typeof AuthenticatedAgregarIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedProgresoRoute: AuthenticatedProgresoRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAgregarDescribirRoute: AuthenticatedAgregarDescribirRoute,
   AuthenticatedAgregarFotoRoute: AuthenticatedAgregarFotoRoute,
   AuthenticatedAgregarManualRoute: AuthenticatedAgregarManualRoute,
   AuthenticatedAgregarRevisarRoute: AuthenticatedAgregarRevisarRoute,
   AuthenticatedComidaIdRoute: AuthenticatedComidaIdRoute,
+  AuthenticatedDiaFechaRoute: AuthenticatedDiaFechaRoute,
   AuthenticatedAgregarIndexRoute: AuthenticatedAgregarIndexRoute,
 }
 
