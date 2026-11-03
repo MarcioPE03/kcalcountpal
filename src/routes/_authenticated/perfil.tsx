@@ -68,7 +68,7 @@ function Perfil() {
       .update({ ...upd, updated_at: new Date().toISOString() })
       .eq("user_id", metas.data.user_id);
     setGuardando(false);
-    if (error) return toast.error("No se pudieron guardar las metas.");
+    if (error) { toast.error("No se pudieron guardar las metas."); return; }
     qc.invalidateQueries({ queryKey: ["metas"] });
     toast.success("Metas guardadas");
   }

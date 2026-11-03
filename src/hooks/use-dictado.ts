@@ -65,7 +65,7 @@ export function useDictado(onTexto: (t: string) => void) {
     rec.interimResults = false;
     rec.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) cbRef.current(e.results[i][0].transcript.trim());
+        const res = e.results[i]; if (res?.isFinal && res[0]) cbRef.current(res[0].transcript.trim());
       }
     };
     rec.onerror = (e) => {
