@@ -16,6 +16,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedProgresoRouteImport } from './routes/_authenticated/progreso'
 import { Route as AuthenticatedAgregarIndexRouteImport } from './routes/_authenticated/agregar.index'
+import { Route as AuthenticatedAgregarCodigoRouteImport } from './routes/_authenticated/agregar.codigo'
 import { Route as AuthenticatedAgregarDescribirRouteImport } from './routes/_authenticated/agregar.describir'
 import { Route as AuthenticatedAgregarFotoRouteImport } from './routes/_authenticated/agregar.foto'
 import { Route as AuthenticatedAgregarManualRouteImport } from './routes/_authenticated/agregar.manual'
@@ -56,6 +57,12 @@ const AuthenticatedAgregarIndexRoute =
   AuthenticatedAgregarIndexRouteImport.update({
     id: '/agregar/',
     path: '/agregar/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAgregarCodigoRoute =
+  AuthenticatedAgregarCodigoRouteImport.update({
+    id: '/agregar/codigo',
+    path: '/agregar/codigo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAgregarDescribirRoute =
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/progreso': typeof AuthenticatedProgresoRoute
+  '/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/progreso': typeof AuthenticatedProgresoRoute
   '/': typeof AuthenticatedIndexRoute
+  '/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/progreso': typeof AuthenticatedProgresoRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/_authenticated/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/_authenticated/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/_authenticated/agregar/manual': typeof AuthenticatedAgregarManualRoute
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/progreso'
+    | '/agregar/codigo'
     | '/agregar/describir'
     | '/agregar/foto'
     | '/agregar/manual'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/progreso'
     | '/'
+    | '/agregar/codigo'
     | '/agregar/describir'
     | '/agregar/foto'
     | '/agregar/manual'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/progreso'
     | '/_authenticated/'
+    | '/_authenticated/agregar/codigo'
     | '/_authenticated/agregar/describir'
     | '/_authenticated/agregar/foto'
     | '/_authenticated/agregar/manual'
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgregarIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agregar/codigo': {
+      id: '/_authenticated/agregar/codigo'
+      path: '/agregar/codigo'
+      fullPath: '/agregar/codigo'
+      preLoaderRoute: typeof AuthenticatedAgregarCodigoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agregar/describir': {
       id: '/_authenticated/agregar/describir'
       path: '/agregar/describir'
@@ -289,6 +309,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProgresoRoute: typeof AuthenticatedProgresoRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAgregarCodigoRoute: typeof AuthenticatedAgregarCodigoRoute
   AuthenticatedAgregarDescribirRoute: typeof AuthenticatedAgregarDescribirRoute
   AuthenticatedAgregarFotoRoute: typeof AuthenticatedAgregarFotoRoute
   AuthenticatedAgregarManualRoute: typeof AuthenticatedAgregarManualRoute
@@ -303,6 +324,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProgresoRoute: AuthenticatedProgresoRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAgregarCodigoRoute: AuthenticatedAgregarCodigoRoute,
   AuthenticatedAgregarDescribirRoute: AuthenticatedAgregarDescribirRoute,
   AuthenticatedAgregarFotoRoute: AuthenticatedAgregarFotoRoute,
   AuthenticatedAgregarManualRoute: AuthenticatedAgregarManualRoute,
