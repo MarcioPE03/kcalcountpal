@@ -228,3 +228,37 @@ export async function guardarPesoMeta(kg: number | null) {
   const { error } = await supabase.from("profiles").update({ peso_meta_kg: kg }).eq("id", id);
   if (error) throw error;
 }
+
+// ---------- Entrenamientos ----------
+
+export type Entrenamiento = Tables<"entrenamientos">;
+export type NuevoEntrenamiento = { fecha: string; nombre: string; calorias_quemadas: number; duracion_min: number | null };
+
+export const entrenamientosDiaQuery = (fecha: string) =>
+  queryOptions({
+    queryKey: ["entrenamientos", fecha],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("entrenamientos").select("*").eq("fecha", fecha).order("created_at");
+      if (error) throw error;
+      return data.map((e) => ({ ...e, calorias_quemadas: Number(e.calorias_quemadas) }));
+    },
+  });
+
+export const totalQuemadas = (es: { calorias_quemadas: number | string }[]) =>
+  es.reduce((s, e) => s + Number(e.calorias_quemadas), 0);
+
+export async function guardarEntrenamiento(e: NuevoEntrenamiento) {
+  const user_id = await uid();
+  const { error } = await supabase.from("entrenamientos").insert({ ...e, user_id });
+  if (error) throw error;
+}
+
+export async function actualizarEntrenamiento(id: string, e: NuevoEntrenamiento) {
+  const { error } = await supabase.from("entrenamientos").update({ ...e, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function borrarEntrenamiento(id: string) {
+  const { error } = await supabase.from("entrenamientos").delete().eq("id", id);
+  if (error) throw error;
+}

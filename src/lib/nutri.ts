@@ -260,6 +260,27 @@ export function caloriasRestantes(consumidas: number, limite: number) {
   return { restante: Math.max(0, restante), excedido: restante < 0 ? -restante : 0 };
 }
 
+/**
+ * Day balance with workouts. Remaining = limit − eaten + burned (burned only if the toggle is on).
+ * Ring progress = eaten / (limit + burned) when on, eaten / limit when off; capped at 1, safe for 0.
+ */
+export function balanceDia({ consumidas, limite, quemadas, sumarQuemadas }: { consumidas: number; limite: number; quemadas: number; sumarQuemadas: boolean }) {
+  const extra = sumarQuemadas ? Math.max(0, quemadas) : 0;
+  const total = limite + extra;
+  const { restante, excedido } = caloriasRestantes(consumidas, total);
+  const progreso = total > 0 ? Math.min(Math.max(consumidas, 0) / total, 1) : consumidas > 0 ? 1 : 0;
+  return { restante, excedido, progreso, leyenda: excedido > 0 ? "kcal de más" : "kcal restantes" };
+}
+
+export const QUEMADAS_MIN = 1;
+export const QUEMADAS_MAX = 5000;
+/** Burned kcal must be a number between 1 and 5000. Returns an error message or null. */
+export function validarQuemadas(kcal: number | null | undefined): string | null {
+  if (kcal == null || !Number.isFinite(kcal)) return "Ingresá las calorías quemadas.";
+  if (kcal < QUEMADAS_MIN || kcal > QUEMADAS_MAX) return "Las calorías quemadas deben estar entre 1 y 5000.";
+  return null;
+}
+
 // ---------- Categorías de alimentos ----------
 
 export const CATEGORIAS = [

@@ -7,6 +7,7 @@ import { Card, Page, PageHeader } from "@/components/kcal/layout";
 import { NumberInput } from "@/components/kcal/editors";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { metasQuery, perfilQuery, type Metas } from "@/lib/data";
 import { aplicarTema, leerTema, type Tema } from "@/lib/tema";
@@ -73,6 +74,13 @@ function Perfil() {
     toast.success("Metas guardadas");
   }
 
+  async function cambiarSumar(valor: boolean) {
+    if (!perfil.data) return;
+    const { error } = await supabase.from("profiles").update({ sumar_quemadas: valor }).eq("id", perfil.data.id);
+    if (error) { toast.error("No se pudo guardar la preferencia."); return; }
+    qc.invalidateQueries({ queryKey: ["perfil"] });
+  }
+
   async function salir() {
     await qc.cancelQueries();
     qc.clear();
@@ -106,6 +114,15 @@ function Perfil() {
         <Button className="mt-3 w-full rounded-full" onClick={guardar} disabled={guardando || !metas.data}>
           {guardando && <Loader2 className="size-4 animate-spin" />} Guardar metas
         </Button>
+      </Card>
+
+      <h2 className="mb-2 mt-6 px-1 text-sm font-semibold text-muted-foreground">Entrenamientos</h2>
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="sumar-quemadas" className="flex-1">Sumar calorías quemadas a mi límite</Label>
+          <Switch id="sumar-quemadas" checked={perfil.data?.sumar_quemadas ?? true} disabled={!perfil.data} onCheckedChange={cambiarSumar} />
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">Si tu límite ya incluye tu actividad física, desactivalo para no contar dos veces.</p>
       </Card>
 
       <h2 className="mb-2 mt-6 px-1 text-sm font-semibold text-muted-foreground">Apariencia</h2>
