@@ -1,19 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, Info, Loader2, PenLine, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
-import { CategoriaSelect, IngredientesEditor, MomentoPicker } from "@/components/kcal/editors";
+import { CategoriaSelect, IngredientesEditor, MomentoPicker, NutrientesForm } from "@/components/kcal/editors";
 import { ConfianzaBadge, TotalesGrid } from "@/components/kcal/totales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clasificarCategoria } from "@/lib/ai.functions";
-import { crearComida, crearFavorito, nutrientesAColumnas } from "@/lib/data";
+import { borrarProductoPropio, crearComida, crearFavorito, filaProductoPropio, guardarProductoPropio, nutrientesAColumnas } from "@/lib/data";
 import { Checkbox } from "@/components/ui/checkbox";
-import { gramosDe, valoresPara } from "@/lib/off";
-import { crearIngrediente, fechaLocal, fmt, fmtRango, horaLocal, momentoPorHora, sumar, type Ingrediente, type Momento } from "@/lib/nutri";
+import { gramosDe, valoresProducto } from "@/lib/off";
+import { NUTRIENTE_LABEL, crearIngrediente, fechaLocal, fmt, fmtRango, horaLocal, momentoPorHora, sumar, type Ingrediente, type Momento } from "@/lib/nutri";
 import { momentoSearch } from "@/lib/search";
 import { borradorStore, useBorrador, useFechaSeleccionada } from "@/lib/stores";
 
@@ -52,23 +52,30 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
   const [nombre, setNombre] = useState(r.nombre_plato);
   const [itemsIA, setItems] = useState<Ingrediente[]>(r.ingredientes);
   const p = b.producto;
-  const [modo, setModo] = useState<"gramos" | "porciones">("gramos");
-  const [cantidad, setCantidad] = useState(100);
-  const [categoria, setCategoria] = useState("Otros");
-  const catManual = useRef(false);
+  const porPorcion = p?.base === "porcion";
+  const [modo, setModo] = useState<"gramos" | "porciones">(porPorcion ? "porciones" : "gramos");
+  const [cantidad, setCantidad] = useState(porPorcion ? 1 : 100);
+  const [categoria, setCategoria] = useState(p?.categoria ?? "Otros");
+  const catManual = useRef(!!p?.categoria);
+  const [base, setBase] = useState(p?.por100);
+  const [editado, setEditado] = useState(false);
+  const [editando, setEditando] = useState(!!p && (p.faltantesPrincipales ?? []).length > 0);
+  const [faltan, setFaltan] = useState<string[]>(p?.faltantesPrincipales ?? []);
+  const [guardarCambios, setGuardarCambios] = useState(false);
+  const [propioBorrado, setPropioBorrado] = useState(false);
   const clasificar = useServerFn(clasificarCategoria);
   useEffect(() => {
-    if (!p) return;
+    if (!p || catManual.current) return;
     let vivo = true;
     clasificar({ data: { nombre: p.nombre, fecha_local: fechaLocal() } })
       .then((res) => { if (vivo && !catManual.current) setCategoria(res.categoria); })
       .catch(() => {});
     return () => { vivo = false; };
   }, [p, clasificar]);
-  const gramos = p ? gramosDe(modo, cantidad, p.porcion_g) : 0;
+  const gramos = p ? (porPorcion ? cantidad : gramosDe(modo, cantidad, p.porcion_g)) : 0;
   const items = useMemo<Ingrediente[]>(
-    () => (p ? [crearIngrediente("off", p.nombre, gramos, valoresPara(p.por100, gramos), categoria)] : itemsIA),
-    [p, gramos, categoria, itemsIA],
+    () => (p && base ? [crearIngrediente("off", p.nombre, porPorcion ? 0 : gramos, valoresProducto({ por100: base, base: p.base }, gramos), categoria)] : itemsIA),
+    [p, base, porPorcion, gramos, categoria, itemsIA],
   );
   const [momento, setMomento] = useState<Momento>(momentoInicial);
   const [guardando, setGuardando] = useState(false);
@@ -96,6 +103,23 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
         ingredientes: items as never,
         ...nutrientesAColumnas(t),
       });
+      // Persist the product (base values) only now, when the meal is confirmed. Never blocks the meal.
+      if (p && base) {
+        const origenProd =
+          p.fuente === "etiqueta" ? "etiqueta"
+          : p.fuente === "propio" && !propioBorrado && editado ? "editado"
+          : p.fuente === "off" && editado && guardarCambios ? "editado"
+          : null;
+        if (origenProd) {
+          try {
+            await guardarProductoPropio(filaProductoPropio({ ...p, nombre: nombre.trim() || p.nombre, por100: base, faltantesPrincipales: faltan }, categoria, origenProd));
+            qc.invalidateQueries({ queryKey: ["productos-propios"] });
+          } catch (e) {
+            console.error(e);
+            toast.warning("La comida se guardó, pero no pudimos guardar el producto en Mis productos.");
+          }
+        }
+      }
       if (fav) {
         try {
           await crearFavorito({ ...comida, categoria: p ? categoria : null });
@@ -125,17 +149,22 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
         <div className="flex gap-4">
           {b.fotoUrl && <img src={b.fotoUrl} alt="" className="size-20 shrink-0 rounded-2xl object-cover" />}
           <div className="min-w-0 flex-1">
-            <Input
+            <textarea
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="h-auto border-0 bg-transparent p-0 font-display text-xl font-bold shadow-none focus-visible:ring-0"
+              rows={2}
+              onChange={(e) => setNombre(e.target.value.replace(/\n/g, " "))}
+              className="w-full resize-none border-0 bg-transparent p-0 font-display text-xl font-bold leading-tight outline-none"
               aria-label="Nombre del plato"
             />
             <p className="mt-1 font-display text-2xl font-extrabold text-primary tabular">
               {p ? `${fmt(t.calorias)} kcal` : fmtRango(t.calorias, kmin, kmax)}
             </p>
             {!p && <div className="mt-1.5"><ConfianzaBadge c={r.confianza} /></div>}
-            {p && <p className="mt-1 text-xs text-muted-foreground">Datos de etiqueta · Open Food Facts</p>}
+            {p && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {p.fuente === "propio" ? "De tus productos" : p.fuente === "etiqueta" ? "Leído de la etiqueta" : "Datos de etiqueta · Open Food Facts"} · Código {p.codigo}
+              </p>
+            )}
           </div>
         </div>
         <div className="mt-5"><TotalesGrid t={t} /></div>
@@ -152,6 +181,47 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
 
       {p ? (
         <>
+          {faltan.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-carbs bg-carbs/15 p-3 text-sm">
+              <p className="flex gap-2 font-semibold">
+                <AlertTriangle className="size-4 shrink-0 text-carbs" /> Faltan datos: completalos antes de guardar
+              </p>
+              <p className="mt-1 pl-6 text-xs">
+                No figura{faltan.length > 1 ? "n" : ""}: {faltan.map((k) => NUTRIENTE_LABEL[k as keyof typeof NUTRIENTE_LABEL].toLowerCase()).join(", ")}
+                {faltan.includes("proteinas") && ". Las proteínas son clave para tu meta."}
+              </p>
+            </div>
+          )}
+          {p.soloPreparado && (
+            <p className="mt-3 flex gap-2 rounded-2xl bg-muted p-3 text-xs text-muted-foreground">
+              <Info className="size-4 shrink-0" /> La etiqueta solo traía valores del producto preparado.
+            </p>
+          )}
+          {p.fuente === "propio" && !propioBorrado && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="rounded-full" onClick={() => setEditando(true)}>
+                <PenLine className="size-3.5" /> Corregir valores
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-full text-destructive"
+                onClick={async () => {
+                  if (!confirm("¿Eliminar este producto de Mis productos? La comida que estás cargando no se pierde.")) return;
+                  try {
+                    await borrarProductoPropio(p.codigo);
+                    setPropioBorrado(true);
+                    qc.invalidateQueries({ queryKey: ["productos-propios"] });
+                    toast.success("Producto eliminado de Mis productos");
+                  } catch {
+                    toast.error("No se pudo eliminar el producto.");
+                  }
+                }}
+              >
+                <Trash2 className="size-3.5" /> Eliminar este producto
+              </Button>
+            </div>
+          )}
           {p.inconsistente && (
             <p className="mt-4 flex gap-2 rounded-2xl bg-destructive/10 p-3 text-sm">
               <AlertTriangle className="size-4 shrink-0 text-destructive" />
@@ -161,9 +231,37 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
           {p.faltantes.length > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">La etiqueta no informa {p.faltantes.join(", ")}; se cuenta como 0.</p>
           )}
+          {base && (
+            <>
+              <h2 className="mb-2 mt-6 flex items-center justify-between text-sm font-semibold text-muted-foreground">
+                Valores {porPorcion ? "por porción" : "por 100 g"}
+                {!editando && <button className="text-xs font-semibold text-primary" onClick={() => setEditando(true)}>Editar</button>}
+              </h2>
+              {editando && (
+                <Card>
+                  <NutrientesForm
+                    value={base}
+                    resaltar={faltan}
+                    onChange={(v) => {
+                      const cambiados = (Object.keys(v) as (keyof typeof v)[]).filter((k) => v[k] !== base[k]);
+                      setFaltan((f) => f.filter((k) => !cambiados.includes(k as never)));
+                      setBase(v);
+                      setEditado(true);
+                    }}
+                  />
+                  {p.fuente === "off" && editado && (
+                    <label className="mt-4 flex items-center gap-2 text-sm">
+                      <Checkbox checked={guardarCambios} onCheckedChange={(c) => setGuardarCambios(c === true)} /> Guardar mis cambios para próximas veces
+                    </label>
+                  )}
+                </Card>
+              )}
+            </>
+          )}
           <h2 className="mb-2 mt-6 text-sm font-semibold text-muted-foreground">Cantidad</h2>
           <Card>
-            {p.porcion_g && (
+            {porPorcion && <p className="mb-3 text-xs text-muted-foreground">No sabemos cuánto pesa la porción: elegí la cantidad en porciones.</p>}
+            {!porPorcion && p.porcion_g && (
               <div className="mb-3 grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
                 {(["gramos", "porciones"] as const).map((m) => (
                   <button
@@ -188,12 +286,14 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
                 aria-label="Cantidad"
               />
               <span className="text-sm text-muted-foreground">
-                {modo === "porciones"
+                {porPorcion
+                  ? `porción${cantidad === 1 ? "" : "es"}`
+                  : modo === "porciones"
                   ? `porción${cantidad === 1 ? "" : "es"} · ${fmt(gramos)} ${p.porcion_ml ? "ml" : "g"}`
                   : p.porcion_ml ? "ml" : "g"}
               </span>
             </div>
-            {p.porcion_ml && <p className="mt-2 text-xs text-muted-foreground">Para bebidas tomamos 1 ml ≈ 1 g.</p>}
+            {p.porcion_ml && !porPorcion && <p className="mt-2 text-xs text-muted-foreground">Para bebidas tomamos 1 ml ≈ 1 g.</p>}
             <div className="mt-4 flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Categoría</span>
               <CategoriaSelect value={categoria} onChange={(c) => { catManual.current = true; setCategoria(c); }} />
@@ -215,7 +315,7 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
       </label>
 
       <Button className="mt-6 h-13 w-full rounded-full text-base" disabled={guardando || items.length === 0 || (!!p && gramos <= 0)} onClick={guardar}>
-        {guardando && <Loader2 className="size-4 animate-spin" />} Guardar comida
+        {guardando && <Loader2 className="size-4 animate-spin" />} {p && faltan.length > 0 ? "Guardar con datos incompletos" : "Guardar comida"}
       </Button>
     </Page>
   );
