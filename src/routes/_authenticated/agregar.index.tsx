@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CopyPlus, Loader2, MessageSquareText, PenLine } from "lucide-react";
+import { Camera, CopyPlus, ScanBarcode, Loader2, MessageSquareText, PenLine } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -72,6 +72,7 @@ function Agregar() {
 
   const opciones = [
     { to: "/agregar/foto", icon: Camera, titulo: "Foto con IA", desc: "Sacá o subí una foto del plato", destacado: true },
+    { to: "/agregar/codigo", icon: ScanBarcode, titulo: "Escanear código", desc: "Productos envasados con código de barras" },
     { to: "/agregar/describir", icon: MessageSquareText, titulo: "Describir", desc: "Contalo con texto o voz" },
     { to: "/agregar/manual", icon: PenLine, titulo: "Carga manual", desc: "Calorías y nutrientes a mano" },
   ] as const;
