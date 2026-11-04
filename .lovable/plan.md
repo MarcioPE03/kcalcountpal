@@ -36,3 +36,13 @@ Un favorito es una copia: si se borra la comida original, el favorito sigue. Un 
 - **Rutas:** nueva `/agregar/mis-comidas` con `?tab=recientes|favoritos|rapido&nombre=&momento=`; `/agregar/manual` redirige a `?tab=rapido`. Formulario manual extraído a un componente reutilizable.
 - **Tests:** dedup de recientes; escalado por 0,5/1,5/2 incluyendo gramos; favorito sobrevive al borrado (la función que crea el favorito copia los valores y no guarda id de la comida; test de que `filasParaRegistrar` desde un favorito no depende de la comida original); guardado múltiple usa la fecha elegida (p. ej. 03/11 → todas las filas con "2026-11-03") y el momento elegido.
 - **AGENTS.md:** regla "Favorites are independent copies in `favoritos`; never reference `comidas` rows".
+
+## Ajustes incorporados
+
+1. **Categoría:** un favorito creado desde Registro rápido guarda un ingrediente único con su categoría. Si un favorito tiene ingredientes vacíos, `filasParaRegistrar` arma ese ingrediente único con `favoritos.categoria`. Test: favorito manual "Lácteos y huevos" cuenta como lácteos en estadísticas.
+2. **Clave del favorito:** columnas `clave` (de `claveComida` al crear, no cambia al renombrar) y `updated_at`; CHECK nutrientes >= 0; índice único (user_id, clave). Corazón lleno si existe esa clave; marcar dos veces no duplica (upsert); quitar borra exactamente ese. Renombrar solo cambia el nombre (obligatorio, no vacío).
+3. **Duplicados:** "Registrar" y "Copiar del día anterior" deshabilitados mientras guardan. Selección identificada por `claveComida` (misma comida en Recientes y Favoritos cuenta una vez). La hoja de confirmación lista los ítems con el total de kcal. Máximo 20 ítems. Cada fila seleccionada muestra kcal ya multiplicadas.
+4. **Fechas:** Recientes ordenadas y agrupadas por `fecha` y luego `created_at`; "Hoy/Ayer" en hora de Buenos Aires, sin toISOString(). La fecha elegida en Hoy viaja como `?fecha=`; si falta, hoy en Buenos Aires. "Copiar del día anterior" usa el día anterior a la fecha seleccionada, con estado vacío si no hay comidas. Test con una cena a las 22:00.
+5. **Botón fijo:** "Registrar (N)" por encima de la barra inferior con safe-area y margen inferior en la lista; oculto en Registro rápido.
+6. **Ruta:** `/agregar/mis-comidas` acepta `?codigo=` opcional (sin uso todavía).
+7. **Detalles:** el escalado multiplica también el rango de kcal (confianza se conserva) y redondea solo al final; el total sigue siendo la suma de ingredientes. En revisión, la comida se guarda primero; si falla el favorito, aviso no bloqueante. Buscador de Recientes con "Ver más" y la aclaración "Busca entre tus comidas recientes".
