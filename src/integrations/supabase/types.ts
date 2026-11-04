@@ -269,6 +269,75 @@ export type Database = {
         }
         Relationships: []
       }
+      productos_propios: {
+        Row: {
+          azucares: number | null
+          base: string
+          calorias: number
+          carbohidratos: number | null
+          categoria: string
+          codigo: string
+          created_at: string
+          fibra: number | null
+          grasas: number | null
+          grasas_saturadas: number | null
+          id: string
+          marca: string | null
+          nombre: string
+          origen: string
+          porcion_g: number | null
+          porcion_ml: boolean
+          proteinas: number | null
+          sodio_mg: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          azucares?: number | null
+          base?: string
+          calorias: number
+          carbohidratos?: number | null
+          categoria?: string
+          codigo: string
+          created_at?: string
+          fibra?: number | null
+          grasas?: number | null
+          grasas_saturadas?: number | null
+          id?: string
+          marca?: string | null
+          nombre: string
+          origen: string
+          porcion_g?: number | null
+          porcion_ml?: boolean
+          proteinas?: number | null
+          sodio_mg?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          azucares?: number | null
+          base?: string
+          calorias?: number
+          carbohidratos?: number | null
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          fibra?: number | null
+          grasas?: number | null
+          grasas_saturadas?: number | null
+          id?: string
+          marca?: string | null
+          nombre?: string
+          origen?: string
+          porcion_g?: number | null
+          porcion_ml?: boolean
+          proteinas?: number | null
+          sodio_mg?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           altura_cm: number | null
