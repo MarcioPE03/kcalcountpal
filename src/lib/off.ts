@@ -253,9 +253,8 @@ export function normalizarEtiqueta(codigo: string, l: LecturaEtiqueta, nombreFal
   const porcionG = l.porcion_cantidad && l.porcion_cantidad > 0 && l.porcion_cantidad <= PORCION_MAX_G && (l.porcion_unidad === "g" || l.porcion_unidad === "ml")
     ? l.porcion_cantidad : null;
   const porcionMl = l.porcion_unidad === "ml";
-  // Per-serving column: parse as-is then scale to 100 g when the serving weight is known.
-  const r = parseProducto(codigo, { product_name: nombre ?? "", nutriments: l.columna === "porcion" && !porcionG ? n : n });
   if (l.columna !== "porcion") {
+    const r = parseProducto(codigo, { product_name: nombre ?? "", nutriments: n });
     if (!r.ok) return r;
     return { ok: true, producto: { ...r.producto, nombre: nombre || "Producto", porcion_g: porcionG, porcion_ml: porcionMl, fuente: "etiqueta", marca: null, soloPreparado: l.solo_preparado } };
   }
