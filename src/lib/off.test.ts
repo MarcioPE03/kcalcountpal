@@ -31,9 +31,9 @@ describe("ausente vs cero y coherencia", () => {
     expect(r.ok && r.producto.inconsistente).toBe(false);
     expect(r.ok).toBe(true);
   });
-  it("falta un macro (ausente) -> sin datos", () => {
+  it("falta un macro pero hay kcal -> se acepta con el macro marcado como faltante", () => {
     const r = parseProducto("1", prod({ "energy-kcal_100g": 50, proteins_100g: 0, carbohydrates_100g: 10 }));
-    expect(r).toMatchObject({ ok: false, motivo: "sin_datos" });
+    expect(r.ok && r.producto.faltantesPrincipales!.length).toBe(1);
   });
   it("cerveza (kcal del alcohol) no dispara aviso", () => {
     const r = parseProducto("1", prod({ "energy-kcal_100g": 43, proteins_100g: 0.5, carbohydrates_100g: 3.6, fat_100g: 0, alcohol_100g: 5 }));
