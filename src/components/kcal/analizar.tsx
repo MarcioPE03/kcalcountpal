@@ -84,7 +84,6 @@ export function AnalizarFlow({ conFoto, momento }: { conFoto: boolean; momento: 
       borradorStore.set({
         origen: foto ? "foto" : "texto",
         descripcion: desc.trim() || null,
-        foto: foto?.blob ?? null,
         fotoUrl: foto?.dataUrl ?? null,
         resultado: r.resultado,
       });

@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Camera, MessageSquareText, PenLine, Copy } from "lucide-react";
+import { Camera, MessageSquareText, PenLine, Copy, ScanBarcode } from "lucide-react";
 import type { Comida } from "@/lib/data";
 import { MOMENTOS, fmt } from "@/lib/nutri";
 
-const ICONO = { foto: Camera, texto: MessageSquareText, manual: PenLine, copia: Copy } as const;
+const ICONO = { foto: Camera, texto: MessageSquareText, manual: PenLine, copia: Copy, codigo: ScanBarcode } as const;
 
 export function MealRow({ c }: { c: Comida }) {
   const Icon = ICONO[c.origen as keyof typeof ICONO] ?? PenLine;

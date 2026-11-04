@@ -2,7 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const DUENO = "__OWNER__";
+const DUENO = "9997f1a2-11a6-4acf-9c62-84e1576bdb32";
 const BUCKET = "fotos-comidas";
 
 export const limpiarFotos = createServerFn({ method: "POST" })

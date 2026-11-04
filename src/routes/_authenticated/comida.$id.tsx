@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  borrarComida, comidaANutrientes, comidaQuery, leerIngredientes, nutrientesAColumnas, urlFoto, type Comida,
+  borrarComida, comidaANutrientes, comidaQuery, leerIngredientes, nutrientesAColumnas, type Comida,
 } from "@/lib/data";
 import { MOMENTOS, fmt, fmtFechaCorta, fmtRango, sumar, type Momento } from "@/lib/nutri";
 
@@ -34,7 +34,6 @@ export const Route = createFileRoute("/_authenticated/comida/$id")({
 function Detalle() {
   const { id } = Route.useParams();
   const q = useQuery(comidaQuery(id));
-  const foto = useQuery({ queryKey: ["foto", q.data?.foto_path], queryFn: () => urlFoto(q.data?.foto_path ?? null), enabled: !!q.data?.foto_path });
   const [editando, setEditando] = useState(false);
 
   if (q.isLoading) return <Page><Skeleton className="h-64 w-full rounded-3xl" /></Page>;
@@ -50,7 +49,6 @@ function Detalle() {
       <PageHeader title="Detalle" back right={
         <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setEditando(true)} aria-label="Editar"><Pencil className="size-5" /></Button>
       } />
-      {foto.data && <img src={foto.data} alt={c.nombre} className="mb-4 aspect-[4/3] w-full rounded-3xl object-cover" />}
       <Card>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {MOMENTOS.find((m) => m.key === c.momento)?.label} · <span className="capitalize">{fmtFechaCorta(c.fecha)}</span>
