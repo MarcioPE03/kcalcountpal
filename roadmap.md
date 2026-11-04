@@ -20,4 +20,4 @@
 - [x] Escanear código (BarcodeDetector + ZXing), Open Food Facts, revisión por gramos/porciones
 - [x] Categoría por IA en segundo plano con tope propio (100/día)
 - [x] Quitar subida y vista de fotos
-- [ ] Vaciar y borrar el bucket de fotos (función puntual), luego foto_path = NULL
+- [x] Vaciar y borrar el bucket de fotos (función puntual), luego foto_path = NULL
