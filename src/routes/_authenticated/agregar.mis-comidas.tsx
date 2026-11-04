@@ -28,6 +28,7 @@ import {
   type ItemComida, type Seleccion,
 } from "@/lib/mis-comidas";
 import { MOMENTOS, fechaLocal, fmt, fmtFechaCorta, horaLocal, momentoPorHora, sumarDias, type Momento } from "@/lib/nutri";
+import { fechaStore } from "@/lib/stores";
 import { cn } from "@/lib/utils";
 
 const search = z.object({
@@ -62,7 +63,7 @@ function MisComidas() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const tab = (TABS as readonly string[]).includes(s.tab ?? "") ? s.tab! : "recientes";
-  const fecha = s.fecha && /^\d{4}-\d{2}-\d{2}$/.test(s.fecha) ? s.fecha : fechaLocal();
+  const fecha = s.fecha && /^\d{4}-\d{2}-\d{2}$/.test(s.fecha) ? s.fecha : fechaStore.get();
   const momento0 = (MOMENTO_KEYS.includes(s.momento ?? "") ? s.momento : momentoPorHora(horaLocal())) as Momento;
 
   const recientes = useQuery(recientesQuery());

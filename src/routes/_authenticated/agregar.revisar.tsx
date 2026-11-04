@@ -10,7 +10,8 @@ import { ConfianzaBadge, TotalesGrid } from "@/components/kcal/totales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clasificarCategoria } from "@/lib/ai.functions";
-import { crearComida, nutrientesAColumnas } from "@/lib/data";
+import { crearComida, crearFavorito, nutrientesAColumnas } from "@/lib/data";
+import { Checkbox } from "@/components/ui/checkbox";
 import { gramosDe, valoresPara } from "@/lib/off";
 import { crearIngrediente, fechaLocal, fmt, fmtRango, horaLocal, momentoPorHora, sumar, type Ingrediente, type Momento } from "@/lib/nutri";
 import { momentoSearch } from "@/lib/search";
@@ -71,6 +72,7 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
   );
   const [momento, setMomento] = useState<Momento>(momentoInicial);
   const [guardando, setGuardando] = useState(false);
+  const [fav, setFav] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -82,7 +84,7 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
   async function guardar() {
     setGuardando(true);
     try {
-      await crearComida({
+      const comida = await crearComida({
         fecha,
         momento,
         nombre: nombre.trim() || "Comida",
@@ -94,6 +96,14 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
         ingredientes: items as never,
         ...nutrientesAColumnas(t),
       });
+      if (fav) {
+        try {
+          await crearFavorito({ ...comida, categoria: p ? categoria : null });
+          qc.invalidateQueries({ queryKey: ["favoritos"] });
+        } catch {
+          toast.warning("La comida se guardó, pero no se pudo guardar como favorito.");
+        }
+      }
       borradorStore.set(null);
       qc.invalidateQueries({ queryKey: ["comidas"] });
       qc.invalidateQueries({ queryKey: ["comidas-rango"] });
@@ -200,7 +210,11 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
       <h2 className="mb-2 mt-6 text-sm font-semibold text-muted-foreground">Momento del día</h2>
       <MomentoPicker value={momento} onChange={setMomento} />
 
-      <Button className="mt-8 h-13 w-full rounded-full text-base" disabled={guardando || items.length === 0 || (!!p && gramos <= 0)} onClick={guardar}>
+      <label className="mt-6 flex items-center gap-2 text-sm">
+        <Checkbox checked={fav} onCheckedChange={(c) => setFav(c === true)} /> Guardar también como favorito
+      </label>
+
+      <Button className="mt-6 h-13 w-full rounded-full text-base" disabled={guardando || items.length === 0 || (!!p && gramos <= 0)} onClick={guardar}>
         {guardando && <Loader2 className="size-4 animate-spin" />} Guardar comida
       </Button>
     </Page>
