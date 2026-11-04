@@ -36,7 +36,7 @@ describe("ausente vs cero y coherencia", () => {
     expect(r).toMatchObject({ ok: false, motivo: "sin_datos" });
   });
   it("cerveza (kcal del alcohol) no dispara aviso", () => {
-    const r = parseProducto("1", prod({ "energy-kcal_100g": 43, proteins_100g: 0.5, carbohydrates_100g: 3.6, fat_100g: 0 }));
+    const r = parseProducto("1", prod({ "energy-kcal_100g": 43, proteins_100g: 0.5, carbohydrates_100g: 3.6, fat_100g: 0, alcohol_100g: 5 }));
     expect(r.ok && r.producto.inconsistente).toBe(false);
   });
   it("datos realmente inconsistentes -> aviso, sin rechazar", () => {

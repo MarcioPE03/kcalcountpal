@@ -45,7 +45,7 @@ export function Analizando({ foto }: { foto?: string | null }) {
   );
 }
 
-export function AnalizarFlow({ conFoto, momento, descInicial }: { conFoto: boolean; momento: Momento; descInicial?: string }) {
+export function AnalizarFlow({ conFoto, momento, descInicial }: { conFoto: boolean; momento: Momento; descInicial?: string | undefined }) {
   const analizar = useServerFn(analizarComida);
   const navigate = useNavigate();
   const camRef = useRef<HTMLInputElement>(null);

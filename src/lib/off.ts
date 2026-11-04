@@ -63,9 +63,9 @@ export function sodioMgDe(n: Record<string, unknown>): number | null {
   return sal !== null ? Math.round(sal * 400) : null;
 }
 
-/** Warning only when diff > 25 % AND > 20 kcal per 100 g. */
-export function kcalInconsistentes(v: Pick<Nutrientes, "calorias" | "proteinas" | "carbohidratos" | "grasas">): boolean {
-  const est = 4 * v.proteinas + 4 * v.carbohidratos + 9 * v.grasas;
+/** Warning only when diff > 25 % AND > 20 kcal per 100 g. Alcohol (% vol) adds 7 kcal/g (0,789 g/ml). */
+export function kcalInconsistentes(v: Pick<Nutrientes, "calorias" | "proteinas" | "carbohidratos" | "grasas">, alcoholVol = 0): boolean {
+  const est = 4 * v.proteinas + 4 * v.carbohidratos + 9 * v.grasas + 7 * alcoholVol * 0.789;
   const diff = Math.abs(v.calorias - est);
   const base = Math.max(v.calorias, est);
   return diff > 20 && base > 0 && diff / base > 0.25;
@@ -87,7 +87,7 @@ export function porcionDe(p: Record<string, unknown>): { g: number | null; ml: b
 export function parseProducto(codigo: string, p: Record<string, unknown> | null | undefined): ParseOFF {
   if (!p) return { ok: false, motivo: "sin_datos", nombre: null };
   const nombre = nombreProducto(p);
-  const n = (p.nutriments ?? {}) as Record<string, unknown>;
+  const n = (p["nutriments"] ?? {}) as Record<string, unknown>;
   const kcal = kcalDe(n);
   const prot = num(n["proteins_100g"]);
   const carb = num(n["carbohydrates_100g"]);
@@ -123,7 +123,7 @@ export function parseProducto(codigo: string, p: Record<string, unknown> | null 
       porcion_g: porcion.g,
       porcion_ml: porcion.ml,
       faltantes,
-      inconsistente: kcalInconsistentes(por100),
+      inconsistente: kcalInconsistentes(por100, num(n["alcohol_100g"]) ?? 0),
     },
   };
 }
