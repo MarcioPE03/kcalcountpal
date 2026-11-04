@@ -3,6 +3,9 @@ export const LIMITE_CATEGORIAS_DEFECTO = 100;
 /** analisis_ia rows with this estado are category classifications, not photo/text analyses. */
 export const ESTADO_CATEGORIA = "categoria";
 
+/** Failed/non-label readings are logged but never consume the analysis quota. */
+export const ESTADO_ETIQUETA_FALLIDA = "etiqueta_fallida";
+
 export function limiteAlcanzado(usados: number, limite: number = LIMITE_ANALISIS_DEFECTO) {
   return usados >= limite;
 }
@@ -10,5 +13,6 @@ export function limiteAlcanzado(usados: number, limite: number = LIMITE_ANALISIS
 /** Splits today's analisis_ia rows into the two independent quotas. */
 export function contarCupos(estados: string[]) {
   const categorias = estados.filter((e) => e === ESTADO_CATEGORIA).length;
-  return { analisis: estados.length - categorias, categorias };
+  const fallidas = estados.filter((e) => e === ESTADO_ETIQUETA_FALLIDA).length;
+  return { analisis: estados.length - categorias - fallidas, categorias };
 }

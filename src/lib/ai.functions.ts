@@ -3,7 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { RespuestaIA, procesarRespuesta, type AnalisisRespuesta } from "./analisis";
 import { AI_GATEWAY_URL, AI_MODEL, TRANSCRIBE_MODEL } from "./ai-model";
-import { ESTADO_CATEGORIA, LIMITE_ANALISIS_DEFECTO, LIMITE_CATEGORIAS_DEFECTO, contarCupos, limiteAlcanzado } from "./limits";
+import { ESTADO_CATEGORIA, ESTADO_ETIQUETA_FALLIDA, LIMITE_ANALISIS_DEFECTO, LIMITE_CATEGORIAS_DEFECTO, contarCupos, limiteAlcanzado } from "./limits";
+import { normalizarCodigo, normalizarEtiqueta, type ProductoOFF } from "./off";
 import { CATEGORIAS, normalizarCategoria, sumarDias } from "./nutri";
 
 const PROMPT = `Sos un nutricionista argentino experto en estimar porciones y valores nutricionales a partir de fotos y descripciones.
@@ -239,5 +240,115 @@ export const clasificarCategoria = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("clasificar error", e);
       return fallback;
+    }
+  });
+
+// ---------- Nutrition label reading ----------
+
+const PROMPT_ETIQUETA = `Leés tablas de información nutricional de envases argentinos (rótulo nutricional del Código Alimentario Argentino).
+Términos habituales: "Valor energético" (kcal y/o kJ), "Hidratos de carbono" o "Carbohidratos", "Proteínas", "Grasas totales", "Grasas saturadas", "Grasas trans", "Fibra alimentaria", "Sodio" (en mg).
+Reglas:
+1. Si la imagen NO es una tabla nutricional legible, devolvé es_etiqueta=false y todos los valores en null.
+2. Si hay columna "por 100 g" (o 100 ml) y otra "por porción", usá SIEMPRE la de 100 g y poné columna="100g". Si solo hay por porción, columna="porcion".
+3. porcion_cantidad y porcion_unidad: el tamaño de la porción tal como figura ("30 g" → 30, "g"; "200 ml" → 200, "ml"; "1 unidad" sin gramos → 1, "unidad"). Si dice "1 unidad (25 g)", usá 25 g. Si no figura, null.
+4. Preferí kcal sobre kJ: si hay kcal, poné kcal y kj null. Solo si no hay kcal poné kj.
+5. azucares: azúcares TOTALES (no "añadidos"). Si no figura, null.
+6. sodio_mg en mg. Si solo figura sal, poné sal_g (gramos) y sodio_mg null.
+7. "0", "0 g", "no contiene" y "No aporta cantidades significativas de …" se leen como 0 para los nutrientes nombrados.
+8. Si un nutriente no aparece en la tabla, devolvé null (NUNCA 0).
+9. Ignorá los % VD (valores diarios) y los octógonos de advertencia ("EXCESO EN …"); solo leé cantidades.
+10. Productos en polvo o para preparar: tomá los valores "tal como se vende". Si solo hay valores del producto preparado, usalos y poné solo_preparado=true.
+11. nombre: nombre del producto si se ve en la foto, si no null.`;
+
+const n = z.number().nullable();
+const LecturaSchema = z.object({
+  es_etiqueta: z.boolean(),
+  nombre: z.string().nullable(),
+  columna: z.enum(["100g", "porcion"]).nullable(),
+  porcion_cantidad: n,
+  porcion_unidad: z.enum(["g", "ml", "unidad"]).nullable(),
+  solo_preparado: z.boolean(),
+  kcal: n, kj: n, proteinas: n, carbohidratos: n, grasas: n, grasas_saturadas: n, fibra: n, azucares: n, sodio_mg: n, sal_g: n,
+});
+
+const EtiquetaInput = z.object({
+  imagen: z.string().regex(/^data:image\/(jpeg|png|webp);base64,/).max(1_500_000),
+  codigo: z.string().regex(/^\d{8,13}$/),
+  nombre: z.string().max(200).nullable(),
+  fecha_local: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export type LeerEtiquetaRespuesta =
+  | { ok: true; producto: ProductoOFF }
+  | { ok: false; mensaje: string };
+
+export const leerEtiqueta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => EtiquetaInput.parse(input))
+  .handler(async ({ data, context }): Promise<LeerEtiquetaRespuesta> => {
+    const { supabase, userId } = context;
+    const hoyUtc = new Date().toISOString().slice(0, 10);
+    const fecha = [sumarDias(hoyUtc, -1), hoyUtc, sumarDias(hoyUtc, 1)].includes(data.fecha_local) ? data.fecha_local : hoyUtc;
+    const { data: perfil } = await supabase.from("profiles").select("limite_analisis_diario").eq("id", userId).maybeSingle();
+    const limite = perfil?.limite_analisis_diario ?? LIMITE_ANALISIS_DEFECTO;
+    const { data: filas } = await supabase.from("analisis_ia").select("estado").eq("user_id", userId).eq("fecha_local", fecha);
+    if (limiteAlcanzado(contarCupos((filas ?? []).map((f) => f.estado)).analisis, limite)) {
+      return { ok: false, mensaje: `Llegaste a ${limite} análisis con IA hoy. Podés cargar el producto a mano.` };
+    }
+    const apiKey = process.env["LOVABLE_API_KEY"];
+    if (!apiKey) return { ok: false, mensaje: "La IA no está configurada." };
+    // Failed readings are logged with an estado that never counts against the quota.
+    const registrar = (estado: string) => supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado });
+    const codigo = normalizarCodigo(data.codigo);
+    try {
+      const { createOpenAI } = await import("@ai-sdk/openai");
+      const { streamText, Output } = await import("ai");
+      const provider = createOpenAI({
+        baseURL: AI_GATEWAY_URL,
+        apiKey,
+        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+      });
+      const result = streamText({
+        model: provider.responses(AI_MODEL),
+        instructions: PROMPT_ETIQUETA,
+        messages: [{ role: "user", content: [
+          { type: "text", text: "Leé la tabla nutricional de esta foto." },
+          { type: "image", image: new URL(data.imagen) },
+        ] }],
+        output: Output.object({ schema: LecturaSchema }),
+        maxRetries: 0,
+        providerOptions: {
+          openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] },
+        },
+      });
+      let lectura;
+      try {
+        lectura = LecturaSchema.parse(await result.output);
+      } catch (e) {
+        if ((e as { statusCode?: number })?.statusCode) throw e;
+        console.error("etiqueta parse error", e);
+        await registrar(ESTADO_ETIQUETA_FALLIDA);
+        return { ok: false, mensaje: "No pudimos leer la etiqueta. Probá con otra foto más nítida." };
+      }
+      if (!lectura.es_etiqueta) {
+        await registrar(ESTADO_ETIQUETA_FALLIDA);
+        return { ok: false, mensaje: "La foto no parece una tabla nutricional. Encuadrá solo la tabla, con buena luz." };
+      }
+      const r = normalizarEtiqueta(codigo, lectura, data.nombre);
+      if (!r.ok) {
+        await registrar(ESTADO_ETIQUETA_FALLIDA);
+        return {
+          ok: false,
+          mensaje: r.motivo === "invalido"
+            ? "Los valores leídos no son coherentes. Probá otra foto o cargalo a mano."
+            : "No pudimos leer las calorías de la etiqueta. Probá otra foto o cargalo a mano.",
+        };
+      }
+      await registrar("ok");
+      return { ok: true, producto: r.producto };
+    } catch (e) {
+      await registrar(ESTADO_ETIQUETA_FALLIDA);
+      const res = errorDeGateway(e);
+      return { ok: false, mensaje: res.ok ? "" : res.mensaje.replace("la comida", "el producto") };
     }
   });

@@ -36,7 +36,7 @@ const search = z.object({
   momento: z.string().optional(),
   fecha: z.string().optional(),
   nombre: z.string().optional(),
-  codigo: z.string().optional(), // reserved for the next step
+  codigo: z.string().regex(/^\d{8,13}$/).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/agregar/mis-comidas")({
@@ -144,7 +144,7 @@ function MisComidas() {
         </TabsContent>
 
         <TabsContent value="rapido">
-          <RegistroRapido fecha={fecha} momentoInicial={momento0} nombreInicial={s.nombre} onDone={() => navigate({ to: "/" })} />
+          <RegistroRapido fecha={fecha} momentoInicial={momento0} nombreInicial={s.nombre} codigo={s.codigo} onDone={() => navigate({ to: "/" })} />
         </TabsContent>
       </Tabs>
 

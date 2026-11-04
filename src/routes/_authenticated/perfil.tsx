@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
 import { NumberInput } from "@/components/kcal/editors";
+import { MisProductos } from "@/components/kcal/mis-productos";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -124,6 +125,9 @@ function Perfil() {
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Si tu límite ya incluye tu actividad física, desactivalo para no contar dos veces.</p>
       </Card>
+
+      <h2 className="mb-2 mt-6 px-1 text-sm font-semibold text-muted-foreground">Mis productos</h2>
+      <MisProductos />
 
       <h2 className="mb-2 mt-6 px-1 text-sm font-semibold text-muted-foreground">Apariencia</h2>
       <Card className="flex gap-2 p-2">
