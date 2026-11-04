@@ -19,3 +19,4 @@
 - Barcode products come from Open Food Facts via a server function; parsing/coherence rules live in pure `src/lib/off.ts` (tested in `off.test.ts`).
 - Day balance (remaining, ring progress, burned-kcal validation) lives in pure `balanceDia`/`validarQuemadas` in `nutri.ts`; UI never recomputes it.
 - Favorites are independent value copies in `favoritos` keyed by `claveComida` (unique per user); never reference `comidas` rows. "Mis comidas" rules (dedup, scaling, bulk rows) live in pure `src/lib/mis-comidas.ts` (tested in `mis-comidas.test.ts`).
+- Barcodes are normalized to EAN-13 (`normalizarCodigo`) before any lookup or save; `productos_propios` stores base values (per 100 g, or per serving only when the weight is unknown) and is always checked before Open Food Facts. Label-photo normalization lives in pure `off.ts`.

@@ -26,3 +26,9 @@
 - [x] Tabla favoritos, reglas puras y tests
 - [x] Pantalla Mis comidas (Recientes, Favoritos, Registro rápido) con selección múltiple
 - [x] Corazón en detalle y casilla en revisión; Agregar reordenado; carga manual redirige
+
+## Escáner para productos argentinos
+- [x] Mis productos (tabla, prioridad sobre OFF, códigos EAN-13, lista en Perfil)
+- [x] Foto de etiqueta con IA (cupo solo si sale bien)
+- [x] Datos parciales en ámbar, guardar con datos incompletos
+- [x] Lector más sensible, diagnóstico, cámara liberada
