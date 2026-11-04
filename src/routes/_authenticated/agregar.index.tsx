@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CopyPlus, ScanBarcode, Loader2, MessageSquareText, PenLine } from "lucide-react";
+import { Camera, CopyPlus, Flame, ScanBarcode, Loader2, MessageSquareText, PenLine } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
 import { MomentoPicker } from "@/components/kcal/editors";
+import { EntrenamientoDialog } from "@/components/kcal/entrenamientos";
 import { supabase } from "@/integrations/supabase/client";
 import { copiaDe, crearComida, recientesQuery, uid } from "@/lib/data";
 import { fechaLocal, fmt, fmtFechaCorta, horaLocal, momentoPorHora, sumarDias, type Momento } from "@/lib/nutri";
@@ -18,9 +19,9 @@ export const Route = createFileRoute("/_authenticated/agregar/")({
   head: () => ({
     meta: [
       { title: "Agregar comida — KcalCountPal" },
-      { name: "description", content: "Registrá una comida con foto, voz, texto o a mano." },
+      { name: "description", content: "Registrá una comida con foto, voz, texto o a mano, o un entrenamiento." },
       { property: "og:title", content: "Agregar comida — KcalCountPal" },
-      { property: "og:description", content: "Registrá una comida con foto, voz, texto o a mano." },
+      { property: "og:description", content: "Registrá una comida con foto, voz, texto o a mano, o un entrenamiento." },
     ],
   }),
   component: Agregar,
@@ -33,6 +34,7 @@ function Agregar() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const recientes = useQuery(recientesQuery());
+  const [entOpen, setEntOpen] = useState(false);
 
   const repetir = useMutation({
     mutationFn: async (id: string) => {
@@ -108,6 +110,20 @@ function Agregar() {
           </Link>
         ))}
       </div>
+
+      <button
+        onClick={() => setEntOpen(true)}
+        className="mt-3 flex w-full items-center gap-4 rounded-3xl bg-card p-5 text-left shadow-soft transition-transform active:scale-[0.98]"
+      >
+        <span className="flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+          <Flame className="size-6" />
+        </span>
+        <div>
+          <p className="font-display text-lg font-bold">Entrenamiento</p>
+          <p className="text-sm text-muted-foreground">Sumá las calorías que quemaste</p>
+        </div>
+      </button>
+      <EntrenamientoDialog open={entOpen} onOpenChange={setEntOpen} fecha={fecha} onGuardado={() => navigate({ to: "/" })} />
 
       <Card className="mt-5">
         <div className="flex items-center justify-between gap-2">
