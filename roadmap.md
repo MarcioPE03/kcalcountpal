@@ -21,3 +21,8 @@
 - [x] Categoría por IA en segundo plano con tope propio (100/día)
 - [x] Quitar subida y vista de fotos
 - [x] Vaciar y borrar el bucket de fotos (función puntual), luego foto_path = NULL
+
+## Mis comidas
+- [x] Tabla favoritos, reglas puras y tests
+- [x] Pantalla Mis comidas (Recientes, Favoritos, Registro rápido) con selección múltiple
+- [x] Corazón en detalle y casilla en revisión; Agregar reordenado; carga manual redirige
