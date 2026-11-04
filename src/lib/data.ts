@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { NUTRIENTES, sumar, type Ingrediente, type Nutrientes } from "./nutri";
+import { dedupRecientes, favoritoDesde, type FilaNueva, type ItemComida } from "./mis-comidas";
 
 export type Comida = Tables<"comidas">;
 export type Metas = Tables<"metas_diarias">;
@@ -92,18 +93,55 @@ export const recientesQuery = () =>
       const { data, error } = await supabase
         .from("comidas")
         .select("*")
+        .order("fecha", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(80);
+        .limit(200);
       if (error) throw error;
-      const vistos = new Set<string>();
-      return data.filter((c) => {
-        const k = c.nombre.trim().toLowerCase();
-        if (vistos.has(k)) return false;
-        vistos.add(k);
-        return true;
-      }).slice(0, 15);
+      return dedupRecientes(data);
     },
   });
+
+// ---------- Favoritos (copias independientes de comidas) ----------
+
+export type Favorito = Tables<"favoritos">;
+
+export const favoritosQuery = () =>
+  queryOptions({
+    queryKey: ["favoritos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("favoritos").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/** Upsert by key: marking twice never duplicates. */
+export async function crearFavorito(item: ItemComida) {
+  const user_id = await uid();
+  const { error } = await supabase
+    .from("favoritos")
+    .upsert({ ...favoritoDesde(item), ingredientes: favoritoDesde(item).ingredientes as never, user_id }, { onConflict: "user_id,clave", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+export async function borrarFavoritoPorClave(clave: string) {
+  const { error } = await supabase.from("favoritos").delete().eq("clave", clave);
+  if (error) throw error;
+}
+
+export async function renombrarFavorito(id: string, nombre: string) {
+  const n = nombre.trim();
+  if (!n) throw new Error("Nombre vacío");
+  const { error } = await supabase.from("favoritos").update({ nombre: n, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function registrarVarias(filas: FilaNueva[]) {
+  const user_id = await uid();
+  const { error } = await supabase.from("comidas").insert(filas.map((f) => ({ ...f, ingredientes: f.ingredientes as never, user_id })));
+  if (error) throw error;
+  return filas.length;
+}
 
 export const metasQuery = () =>
   queryOptions({
