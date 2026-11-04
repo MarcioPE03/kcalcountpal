@@ -202,7 +202,7 @@ export function EntrenamientosSheet({ fecha, children }: { fecha: string; childr
           </PopoverContent>
         </Popover>
       )}
-      <EntrenamientoDialog open={!!dialogo} onOpenChange={(o) => !o && setDialogo(null)} fecha={fecha} entrenamiento={dialogo?.e} />
+      <EntrenamientoDialog open={!!dialogo} onOpenChange={(o) => !o && setDialogo(null)} fecha={fecha} entrenamiento={dialogo?.e ?? null} />
     </>
   );
 }
