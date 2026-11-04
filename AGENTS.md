@@ -13,6 +13,7 @@
 - Pure nutrition/date/format logic lives in `src/lib/nutri.ts` (tested in `nutri.test.ts`); keep it free of browser/server deps so rules stay testable.
 - Dates are local-day strings computed in America/Argentina/Buenos_Aires (the app's audience), never UTC `toISOString()` of "now".
 - AI calls run only in `src/lib/ai.functions.ts` server functions; the model id lives in the single constant in `src/lib/ai-model.ts`.
-- Photos are uploaded to storage only when a meal is saved, never before analysis; deleting a meal removes its photo unless another copied meal references it.
+- Food photos are never stored: compressed in the browser, sent only to the analysis server function, then discarded (`comidas.foto_path` is deprecated).
 - Signed-in pages live under `src/routes/_authenticated/`; `/` is the Hoy screen there (no top-level index route).
 - Weight history lives only in the `pesos` table (one row per user/day); never write `profiles.peso_kg` (deprecated) so there is a single source of truth.
+- Barcode products come from Open Food Facts via a server function; parsing/coherence rules live in pure `src/lib/off.ts` (tested in `off.test.ts`).
