@@ -75,7 +75,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#f8faf5" },
+      { name: "theme-color", content: "#3f9a7c" },
       { title: "KcalCountPal" },
       { name: "description", content: "Contá calorías y nutrientes con IA a partir de una foto o tu voz." },
       { property: "og:type", content: "website" },
@@ -105,7 +105,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("tema")||"claro";if(t==="oscuro"||(t==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("tema")||"claro";if(t==="oscuro"||(t==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark");var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute("content","#1f5644")}}catch(e){}`,
           }}
         />
       </head>

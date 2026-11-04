@@ -92,7 +92,7 @@ export function EstadisticasTab() {
                   <YAxis domain={[0, (max: number) => Math.ceil(Math.max(max, limite * 1.1) / 100) * 100]} tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
                   <ReferenceLine y={limite} stroke="var(--accent)" strokeDasharray="4 4" />
                   <Bar dataKey="calorias" radius={[6, 6, 6, 6]} animationDuration={900}>
-                    {porDia.map((d) => <Cell key={d.f} fill={d.calorias > limite ? "var(--over)" : "var(--primary)"} />)}
+                    {porDia.map((d) => <Cell key={d.f} fill="var(--primary)" />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
