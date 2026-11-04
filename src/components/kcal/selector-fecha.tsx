@@ -46,9 +46,9 @@ export function SelectorFecha({ fecha, hoy, onChange, children }: { fecha: strin
   );
 
   const trigger = (
-    <button className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-muted" aria-label="Elegir fecha">
+    <button className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/15" aria-label="Elegir fecha">
       {children}
-      <CalendarDays className="size-4 text-muted-foreground" />
+      <CalendarDays className="size-4 opacity-80" />
     </button>
   );
 
