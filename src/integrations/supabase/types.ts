@@ -186,6 +186,7 @@ export type Database = {
           edad: number | null
           id: string
           limite_analisis_diario: number
+          limite_categorias_diario: number
           nivel_actividad: string | null
           nombre: string | null
           objetivo: string | null
@@ -200,6 +201,7 @@ export type Database = {
           edad?: number | null
           id: string
           limite_analisis_diario?: number
+          limite_categorias_diario?: number
           nivel_actividad?: string | null
           nombre?: string | null
           objetivo?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           edad?: number | null
           id?: string
           limite_analisis_diario?: number
+          limite_categorias_diario?: number
           nivel_actividad?: string | null
           nombre?: string | null
           objetivo?: string | null

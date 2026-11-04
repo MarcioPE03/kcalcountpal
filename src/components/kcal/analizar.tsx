@@ -45,13 +45,13 @@ export function Analizando({ foto }: { foto?: string | null }) {
   );
 }
 
-export function AnalizarFlow({ conFoto, momento }: { conFoto: boolean; momento: Momento }) {
+export function AnalizarFlow({ conFoto, momento, descInicial }: { conFoto: boolean; momento: Momento; descInicial?: string | undefined }) {
   const analizar = useServerFn(analizarComida);
   const navigate = useNavigate();
   const camRef = useRef<HTMLInputElement>(null);
   const galRef = useRef<HTMLInputElement>(null);
   const [foto, setFoto] = useState<{ blob: Blob; dataUrl: string } | null>(null);
-  const [desc, setDesc] = useState("");
+  const [desc, setDesc] = useState(descInicial ?? "");
   const [cargando, setCargando] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,6 @@ export function AnalizarFlow({ conFoto, momento }: { conFoto: boolean; momento: 
       borradorStore.set({
         origen: foto ? "foto" : "texto",
         descripcion: desc.trim() || null,
-        foto: foto?.blob ?? null,
         fotoUrl: foto?.dataUrl ?? null,
         resultado: r.resultado,
       });

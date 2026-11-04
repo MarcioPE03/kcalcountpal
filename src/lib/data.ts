@@ -137,22 +137,6 @@ export const perfilQuery = () =>
     },
   });
 
-export async function urlFoto(path: string | null): Promise<string | null> {
-  if (!path) return null;
-  const { data } = await supabase.storage.from("fotos-comidas").createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
-}
-
-export async function subirFoto(blob: Blob): Promise<string> {
-  const id = await uid();
-  const path = `${id}/${crypto.randomUUID()}.jpg`;
-  const { error } = await supabase.storage
-    .from("fotos-comidas")
-    .upload(path, blob, { contentType: "image/jpeg" });
-  if (error) throw error;
-  return path;
-}
-
 export type NuevaComida = Omit<TablesInsert<"comidas">, "user_id">;
 
 export async function crearComida(c: NuevaComida) {
@@ -162,17 +146,9 @@ export async function crearComida(c: NuevaComida) {
   return data;
 }
 
-/** Deletes a meal and its photo, unless another (copied) meal still uses it. */
 export async function borrarComida(c: Comida) {
   const { error } = await supabase.from("comidas").delete().eq("id", c.id);
   if (error) throw error;
-  if (c.foto_path) {
-    const { count } = await supabase
-      .from("comidas")
-      .select("id", { count: "exact", head: true })
-      .eq("foto_path", c.foto_path);
-    if (!count) await supabase.storage.from("fotos-comidas").remove([c.foto_path]);
-  }
 }
 
 export function copiaDe(c: Comida, fecha: string, momento?: string): NuevaComida {
@@ -182,7 +158,6 @@ export function copiaDe(c: Comida, fecha: string, momento?: string): NuevaComida
     nombre: c.nombre,
     origen: "copia",
     descripcion: c.descripcion,
-    foto_path: c.foto_path,
     confianza: c.confianza,
     kcal_min: c.kcal_min,
     kcal_max: c.kcal_max,

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Page, PageHeader } from "@/components/kcal/layout";
 import { AnalizarFlow } from "@/components/kcal/analizar";
-import { momentoSearch } from "@/lib/search";
+import { describirSearch } from "@/lib/search";
 import { horaLocal, momentoPorHora } from "@/lib/nutri";
 
 export const Route = createFileRoute("/_authenticated/agregar/describir")({
-  validateSearch: momentoSearch,
+  validateSearch: describirSearch,
   head: () => ({
     meta: [
       { title: "Describir comida — KcalCountPal" },
@@ -15,11 +15,11 @@ export const Route = createFileRoute("/_authenticated/agregar/describir")({
     ],
   }),
   component: () => {
-    const { momento } = Route.useSearch();
+    const { momento, texto } = Route.useSearch();
     return (
       <Page>
         <PageHeader title="Describir" back />
-        <AnalizarFlow conFoto={false} momento={momento ?? momentoPorHora(horaLocal())} />
+        <AnalizarFlow conFoto={false} descInicial={texto} momento={momento ?? momentoPorHora(horaLocal())} />
       </Page>
     );
   },
