@@ -14,7 +14,7 @@ export function codigoValido(code: string): boolean {
 
 export const OFF_FIELDS = [
   "code", "product_name", "product_name_es", "brands", "serving_size", "serving_quantity", "serving_quantity_unit",
-  "nutriments",
+  "nutriments.energy-kcal_100g,nutriments.energy-kj_100g,nutriments.proteins_100g,nutriments.carbohydrates_100g,nutriments.fat_100g,nutriments.saturated-fat_100g,nutriments.fiber_100g,nutriments.sugars_100g,nutriments.sodium_100g,nutriments.salt_100g,nutriments.alcohol_100g",
 ].join(",");
 
 export const PORCION_MAX_G = 1000;
@@ -41,8 +41,8 @@ const num = (v: unknown): number | null => {
 };
 
 export function nombreProducto(p: Record<string, unknown>): string | null {
-  const n = String(p.product_name_es || p.product_name || "").trim();
-  const marca = String(p.brands || "").split(",")[0]?.trim();
+  const n = String(p["product_name_es"] || p["product_name"] || "").trim();
+  const marca = String(p["brands"] || "").split(",")[0]?.trim();
   if (!n) return marca || null;
   return marca ? `${marca} · ${n}` : n;
 }
@@ -76,9 +76,9 @@ export function datosInvalidos(v: Pick<Nutrientes, "calorias" | "proteinas" | "c
 }
 
 export function porcionDe(p: Record<string, unknown>): { g: number | null; ml: boolean } {
-  const q = num(p.serving_quantity);
-  const unit = String(p.serving_quantity_unit || "").toLowerCase();
-  const size = String(p.serving_size || "").toLowerCase();
+  const q = num(p["serving_quantity"]);
+  const unit = String(p["serving_quantity_unit"] || "").toLowerCase();
+  const size = String(p["serving_size"] || "").toLowerCase();
   const ml = unit === "ml" || (!unit && /\bml\b/.test(size));
   if (q === null || q <= 0 || q > PORCION_MAX_G) return { g: null, ml: false };
   return { g: q, ml };
