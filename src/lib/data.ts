@@ -302,8 +302,8 @@ export async function borrarEntrenamiento(id: string) {
 }
 
 // ---------- Mis productos (per-user barcode products, values per 100 g or per serving) ----------
-export type ProductoPropio = Database["public"]["Tables"]["productos_propios"]["Row"];
-export type NuevoProductoPropio = Omit<Database["public"]["Tables"]["productos_propios"]["Insert"], "user_id">;
+export type ProductoPropio = Tables<"productos_propios">;
+export type NuevoProductoPropio = Omit<TablesInsert<"productos_propios">, "user_id">;
 
 export const productosPropiosQuery = () =>
   queryOptions({
@@ -324,4 +324,20 @@ export async function guardarProductoPropio(p: NuevoProductoPropio) {
 export async function borrarProductoPropio(codigo: string) {
   const { error } = await supabase.from("productos_propios").delete().eq("codigo", codigo);
   if (error) throw error;
+}
+
+/** Row to persist from a product with base values (per 100 g, or per serving when weight is unknown). */
+export function filaProductoPropio(
+  p: { codigo: string; nombre: string; marca?: string | null; por100: Nutrientes; porcion_g: number | null; porcion_ml: boolean; base?: "100g" | "porcion"; faltantesPrincipales?: string[] },
+  categoria: string,
+  origen: "etiqueta" | "manual" | "editado",
+): NuevoProductoPropio {
+  const falt = new Set(p.faltantesPrincipales ?? []);
+  const v = (k: keyof Nutrientes) => (falt.has(k) ? null : p.por100[k]);
+  return {
+    codigo: p.codigo, nombre: p.nombre, marca: p.marca ?? null, categoria, origen, base: p.base ?? "100g",
+    porcion_g: p.porcion_g, porcion_ml: p.porcion_ml,
+    calorias: p.por100.calorias, proteinas: v("proteinas"), carbohidratos: v("carbohidratos"), grasas: v("grasas"),
+    grasas_saturadas: p.por100.grasas_saturadas, fibra: p.por100.fibra, azucares: p.por100.azucares, sodio_mg: p.por100.sodio_mg,
+  };
 }
