@@ -4,33 +4,44 @@
 
 **Agregar comida** suma una cuarta opción: "Escanear código" (ícono de código de barras).
 
-Flujo:
 ```text
-Escanear (cámara trasera) -> código detectado -> Open Food Facts -> Revisión editable -> Guardar
+Escanear (cámara trasera) -> código válido -> Open Food Facts -> Revisión editable -> Guardar
 ```
 
-- **Cámara:** pide permiso al abrir. Detecta con `BarcodeDetector` del navegador (Chrome Android) y, si no existe, con ZXing de respaldo. Formatos EAN-13, EAN-8, UPC-A, UPC-E. Vibración corta al detectar. También campo para tipear el código a mano.
-- **Permiso denegado / sin cámara:** mensaje claro con cómo habilitarlo, botón "Reintentar" y la opción de tipear el código.
-- **Open Food Facts:** se consulta por código y se leen los valores por 100 g (kcal, proteínas, carbohidratos, grasas, saturadas, fibra, azúcares, sodio; si solo trae sal, sodio = sal ÷ 2,5) y el tamaño de porción si existe.
-- **Producto no encontrado o sin kcal/macros:** mensaje "No encontramos este producto" / "Faltan datos nutricionales" con botones **Cargar manualmente** y **Describir con IA** (este último llega con el nombre del producto precargado si lo hay). Nutrientes secundarios faltantes cuentan como 0 y se avisa.
-- **Revisión:** la misma pantalla de revisión editable de hoy. Arriba, un selector de cantidad: **gramos** o **porciones** (si OFF trae porción; si no, solo gramos, por defecto 100 g). Al cambiar, se recalculan kcal y los 8 nutrientes al instante. Sin rango de kcal ni badge de confianza (son datos de etiqueta).
-- **Categoría:** no se usa la de Open Food Facts. Una llamada corta a la IA clasifica el nombre del producto en una de las 12 categorías cerradas. Corre en segundo plano: si falla o tarda, queda "Otros" y se puede guardar igual (también editable a mano). No consume el cupo de 30 análisis diarios.
-- **Guardado:** origen "código" con su propio ícono en el diario; cuenta igual en estadísticas, recientes y "copiar de ayer".
+- **Cámara:** pide permiso al abrir. Detecta con `BarcodeDetector` del navegador (Chrome Android) y, si no existe, con ZXing de respaldo. Formatos EAN-13, EAN-8, UPC-A, UPC-E. Enfoque continuo y botón de linterna cuando el navegador lo soporta. Campo para tipear el código a mano.
+- **Una sola lectura:** se valida el dígito verificador antes de consultar; tras la primera detección válida el escaneo se detiene (una consulta, una vibración).
+- **Permiso denegado / sin cámara:** mensaje claro con cómo habilitarlo, "Reintentar" y la opción de tipear el código.
+- **Open Food Facts:** consulta por código pidiendo solo los campos necesarios. Nombre: `product_name_es`, si no `product_name`, mostrado como "Marca · Producto". Valores por 100 g.
+- **Ausente vs. cero:** un 0 es un dato válido (gaseosa cero, agua, edulcorante). Solo se rechaza si faltan (no vienen) kcal o alguno de los macros principales. Nutrientes secundarios faltantes cuentan como 0, con aviso.
+- **Unidades:** sin kcal pero con kJ -> kcal = kJ ÷ 4,184. Sodio: sodio_mg = sodio_g × 1000; si solo hay sal, sodio_mg = sal_g × 400.
+- **Coherencia:** P + C + G por 100 g mayor a ~100 g, o kcal por 100 g mayor a ~900, se tratan como datos inválidos. Si las kcal difieren más de ~25 % de 4×P + 4×C + 9×G: aviso "Datos de etiqueta inconsistentes, revisá los valores", editable, sin rechazar.
+- **Producto no encontrado o sin datos:** mensaje claro con **Cargar manualmente** y **Describir con IA** (con el nombre precargado si lo hay).
+- **Revisión:** la misma pantalla editable. Selector de cantidad en **gramos** o **porciones** (si OFF trae porción; si no, solo gramos, por defecto 100 g). Porciones con fracciones (0,5) mostrando los gramos equivalentes. Porción en ml se toma como gramos, aclarado en pantalla. Recalcula kcal y los 8 nutrientes al instante. Sin rango ni badge de confianza.
+- **Categoría:** la IA clasifica el nombre en una de las 12 categorías, en segundo plano. Nunca pisa una categoría que el usuario ya eligió a mano. Si falla o se alcanzó el tope, queda "Otros" y se guarda igual. Tope propio de 100 clasificaciones por usuario por día (configurable), separado del cupo de 30 análisis.
+- **Guardado:** origen "código" con su ícono; cuenta igual en estadísticas, recientes y "copiar de ayer".
 
 ## 2. No guardar fotos
 
-- La foto se comprime en el celular, se manda solo para el análisis y se descarta. La miniatura se ve en la revisión (en memoria) pero no se sube nunca.
-- Se elimina la subida a Storage, las URLs firmadas y la foto en el detalle de la comida; al borrar o copiar una comida ya no se toca ninguna foto.
-- **Limpieza en la base de datos:** se vacía la referencia a la foto en todas las comidas (la columna queda marcada como retirada, no se borra), se borran las fotos guardadas, sus permisos y el bucket.
-- **No se borra ninguna comida, peso ni estadística.** Cada comida conserva su origen e ícono (foto, texto, manual, copia).
+- La foto se comprime en el celular, se manda solo para el análisis y se descarta. La miniatura de la revisión vive solo en memoria.
+- Se elimina la subida, las URLs firmadas y la foto en el detalle; borrar o copiar una comida ya no toca fotos.
+- **No se borra ninguna comida, peso ni estadística.** Cada comida conserva su origen e ícono.
+
+## 3. Orden de los cambios en la base de datos
+
+```text
+Paso A (esquema)   -> CHECK de origen con todos los valores existentes + "codigo"; foto marcada como retirada
+Paso B (limpieza)  -> vaciar y eliminar el bucket con la API de Storage; recién después foto_path = NULL
+```
+
+- Antes del paso A se consultan los valores reales de origen en la tabla (incluido "copia") y el CHECK los incluye todos.
+- El paso B es independiente: si falla, el escáner sigue funcionando y se informa.
 
 ## Detalles técnicos
 
-- Migración: ampliar el CHECK de `comidas.origen` con `'codigo'`; `UPDATE comidas SET foto_path = NULL`; `COMMENT ON COLUMN ... 'DEPRECATED'`; borrar policies de `storage.objects` del bucket `fotos-comidas`, `DELETE FROM storage.objects WHERE bucket_id='fotos-comidas'` y `DELETE FROM storage.buckets WHERE id='fotos-comidas'` (pide confirmación por ser destructiva; solo afecta fotos).
-- Nuevo `src/lib/off.ts` (puro): parseo de respuesta OFF -> valores por gramo, sal->sodio, porción en g, validación de datos mínimos. Tests en `off.test.ts`.
-- Consulta OFF en una función de servidor (`world.openfoodfacts.org/api/v2/product/{code}`, User-Agent propio, timeout). Clasificación de categoría en `ai.functions.ts` con el modelo de `ai-model.ts`, JSON estricto, fallback "Otros".
-- Ruta `/agregar/codigo`; `@zxing/browser` importado dinámicamente solo si falta `BarcodeDetector`; cámara liberada al salir.
-- Borrador (`stores.ts`): origen `"foto" | "texto" | "codigo"`, sin blob de foto; datos de producto (por 100 g, porción) para el selector gramos/porciones.
-- `data.ts`: quitar `subirFoto`, `urlFoto`, lógica de foto en borrar/copiar. `meal.tsx`: ícono para `codigo`.
-- Actualizar AGENTS.md (regla de fotos -> "las fotos nunca se guardan") y memoria (el código de barras deja de estar fuera de alcance; la base externa se limita a Open Food Facts por código).
-- Tests: cálculo por gramos y por porción, sal->sodio, producto sin datos rechazado, categoría inválida -> "Otros".
+- Migración A: `DROP CONSTRAINT` + nuevo CHECK de `comidas.origen` (valores reales + `'codigo'`); `COMMENT ON COLUMN comidas.foto_path IS 'DEPRECATED'`. Además tabla/conteo para el tope de clasificación (reusa `analisis_ia` con `estado='categoria'` o columna `limite_categorias_diario` en `profiles` default 100, protegida por el trigger existente).
+- Paso B: función de servidor puntual (admin, ejecutada una vez por mí) que lista y borra todos los objetos de `fotos-comidas` con la API de Storage, elimina el bucket y después hace `UPDATE comidas SET foto_path = NULL`. Las policies del bucket se retiran en una migración posterior. La función se elimina al terminar.
+- Nuevo `src/lib/off.ts` (puro): validación EAN, parseo OFF (ausente vs. 0, kJ->kcal, sodio/sal), chequeos de coherencia, porción en g/ml, cálculo por gramos/porciones. Tests en `off.test.ts` para cada regla.
+- Consulta OFF en función de servidor (`/api/v2/product/{code}?fields=...`, User-Agent propio, timeout). Clasificación en `ai.functions.ts` con el modelo de `ai-model.ts`, JSON estricto, fallback "Otros", tope diario.
+- Ruta `/agregar/codigo`; `@zxing/browser` importado dinámicamente solo si falta `BarcodeDetector`; cámara y linterna liberadas al salir.
+- `stores.ts`: origen `"foto" | "texto" | "codigo"`, sin blob; datos de producto para el selector. `data.ts`: quitar `subirFoto`, `urlFoto` y lógica de foto. `meal.tsx`: ícono `codigo`.
+- AGENTS.md: regla de fotos -> "las fotos nunca se guardan". Memoria: código de barras con Open Food Facts deja de estar fuera de alcance; tope 100 clasificaciones/día.
