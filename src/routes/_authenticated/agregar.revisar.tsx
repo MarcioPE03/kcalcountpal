@@ -74,7 +74,7 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
   }, [p, clasificar]);
   const gramos = p ? (porPorcion ? cantidad : gramosDe(modo, cantidad, p.porcion_g)) : 0;
   const items = useMemo<Ingrediente[]>(
-    () => (p && base ? [crearIngrediente("off", p.nombre, porPorcion ? 0 : gramos, valoresProducto({ por100: base, base: p.base }, gramos), categoria)] : itemsIA),
+    () => (p && base ? [crearIngrediente("off", p.nombre, porPorcion ? 0 : gramos, valoresProducto({ por100: base, base: p.base ?? "100g" }, gramos), categoria)] : itemsIA),
     [p, base, porPorcion, gramos, categoria, itemsIA],
   );
   const [momento, setMomento] = useState<Momento>(momentoInicial);
