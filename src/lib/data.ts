@@ -300,3 +300,28 @@ export async function borrarEntrenamiento(id: string) {
   const { error } = await supabase.from("entrenamientos").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ---------- Mis productos (per-user barcode products, values per 100 g or per serving) ----------
+export type ProductoPropio = Database["public"]["Tables"]["productos_propios"]["Row"];
+export type NuevoProductoPropio = Omit<Database["public"]["Tables"]["productos_propios"]["Insert"], "user_id">;
+
+export const productosPropiosQuery = () =>
+  queryOptions({
+    queryKey: ["productos-propios"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("productos_propios").select("*").order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+export async function guardarProductoPropio(p: NuevoProductoPropio) {
+  const user_id = await uid();
+  const { error } = await supabase.from("productos_propios").upsert({ ...p, user_id }, { onConflict: "user_id,codigo" });
+  if (error) throw error;
+}
+
+export async function borrarProductoPropio(codigo: string) {
+  const { error } = await supabase.from("productos_propios").delete().eq("codigo", codigo);
+  if (error) throw error;
+}
