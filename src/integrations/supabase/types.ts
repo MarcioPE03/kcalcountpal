@@ -146,6 +146,63 @@ export type Database = {
         }
         Relationships: []
       }
+      favoritos: {
+        Row: {
+          azucares_g: number
+          calorias: number
+          carbohidratos_g: number
+          categoria: string
+          clave: string
+          created_at: string
+          fibra_g: number
+          grasas_g: number
+          grasas_saturadas_g: number
+          id: string
+          ingredientes: Json
+          nombre: string
+          proteinas_g: number
+          sodio_mg: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          azucares_g?: number
+          calorias?: number
+          carbohidratos_g?: number
+          categoria?: string
+          clave: string
+          created_at?: string
+          fibra_g?: number
+          grasas_g?: number
+          grasas_saturadas_g?: number
+          id?: string
+          ingredientes?: Json
+          nombre: string
+          proteinas_g?: number
+          sodio_mg?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          azucares_g?: number
+          calorias?: number
+          carbohidratos_g?: number
+          categoria?: string
+          clave?: string
+          created_at?: string
+          fibra_g?: number
+          grasas_g?: number
+          grasas_saturadas_g?: number
+          id?: string
+          ingredientes?: Json
+          nombre?: string
+          proteinas_g?: number
+          sodio_mg?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       metas_diarias: {
         Row: {
           azucares_g: number | null

@@ -43,6 +43,13 @@
       "when": 1793809607576,
       "tag": "0005_entrenamientos",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793812376433,
+      "tag": "0006_favoritos",
+      "breakpoints": true
     }
   ]
 }
