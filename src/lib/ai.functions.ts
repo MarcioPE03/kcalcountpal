@@ -3,8 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { RespuestaIA, procesarRespuesta, type AnalisisRespuesta } from "./analisis";
 import { AI_GATEWAY_URL, AI_MODEL, TRANSCRIBE_MODEL } from "./ai-model";
-import { LIMITE_ANALISIS_DEFECTO, limiteAlcanzado } from "./limits";
-import { sumarDias } from "./nutri";
+import { ESTADO_CATEGORIA, LIMITE_ANALISIS_DEFECTO, LIMITE_CATEGORIAS_DEFECTO, contarCupos, limiteAlcanzado } from "./limits";
+import { CATEGORIAS, normalizarCategoria, sumarDias } from "./nutri";
 
 const PROMPT = `Sos un nutricionista argentino experto en estimar porciones y valores nutricionales a partir de fotos y descripciones.
 Conocés muy bien la comida argentina y sus preparaciones típicas: milanesa (frita o al horno, napolitana), empanadas (carne, jamón y queso, humita, pollo), asado (vacío, tira, chorizo, morcilla, provoleta), facturas (medialunas de manteca y de grasa, vigilantes, bolas de fraile), mate (amargo o con azúcar), dulce de leche, alfajores, locro, guiso de lentejas, ñoquis, tartas, pizza de molde y fugazzeta, choripán, sándwich de miga, etc.
@@ -72,12 +72,13 @@ export const analizarComida = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
     const limite = perfil?.limite_analisis_diario ?? LIMITE_ANALISIS_DEFECTO;
-    const { count } = await supabase
+    const { data: filas } = await supabase
       .from("analisis_ia")
-      .select("id", { count: "exact", head: true })
+      .select("estado")
       .eq("user_id", userId)
       .eq("fecha_local", fecha);
-    const usados = count ?? 0;
+    // Category classifications have their own quota and never consume this one.
+    const usados = contarCupos((filas ?? []).map((f) => f.estado)).analisis;
     if (limiteAlcanzado(usados, limite)) {
       return {
         ok: false,
@@ -191,5 +192,52 @@ export const transcribirAudio = createServerFn({ method: "POST" })
     } catch (e) {
       console.error(e);
       return { ok: false, mensaje: "No pudimos transcribir el audio. Escribilo a mano." };
+    }
+  });
+
+const ClasificarInput = z.object({
+  nombre: z.string().min(1).max(200),
+  fecha_local: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+/** Classifies a product name into one of the closed categories. Never throws: falls back to "Otros". */
+export const clasificarCategoria = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ClasificarInput.parse(input))
+  .handler(async ({ data, context }): Promise<{ categoria: string; ok: boolean }> => {
+    const { supabase, userId } = context;
+    const fallback = { categoria: "Otros", ok: false };
+    try {
+      const hoyUtc = new Date().toISOString().slice(0, 10);
+      const fecha = [sumarDias(hoyUtc, -1), hoyUtc, sumarDias(hoyUtc, 1)].includes(data.fecha_local) ? data.fecha_local : hoyUtc;
+      const { data: perfil } = await supabase.from("profiles").select("limite_categorias_diario").eq("id", userId).maybeSingle();
+      const limite = perfil?.limite_categorias_diario ?? LIMITE_CATEGORIAS_DEFECTO;
+      const { data: filas } = await supabase.from("analisis_ia").select("estado").eq("user_id", userId).eq("fecha_local", fecha);
+      if (limiteAlcanzado(contarCupos((filas ?? []).map((f) => f.estado)).categorias, limite)) return fallback;
+
+      const apiKey = process.env["LOVABLE_API_KEY"];
+      if (!apiKey) return fallback;
+      await supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado: ESTADO_CATEGORIA });
+
+      const { createOpenAI } = await import("@ai-sdk/openai");
+      const { streamText, Output } = await import("ai");
+      const provider = createOpenAI({
+        baseURL: AI_GATEWAY_URL,
+        apiKey,
+        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+      });
+      const result = streamText({
+        model: provider.responses(AI_MODEL),
+        instructions: `Clasificá el producto alimenticio en exactamente una categoría de esta lista: ${CATEGORIAS.join(", ")}. Si no estás seguro, usá "Otros".`,
+        messages: [{ role: "user", content: `Producto: ${data.nombre}` }],
+        output: Output.object({ schema: z.object({ categoria: z.enum(CATEGORIAS) }) }),
+        maxRetries: 0,
+        providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", store: false } },
+      });
+      const out = await result.output;
+      return { categoria: normalizarCategoria(out.categoria), ok: true };
+    } catch (e) {
+      console.error("clasificar error", e);
+      return fallback;
     }
   });
