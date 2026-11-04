@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { crearComida, crearFavorito, nutrientesAColumnas } from "@/lib/data";
 import { vacio, type Momento } from "@/lib/nutri";
 
-export function RegistroRapido({ fecha, momentoInicial, nombreInicial, onDone }: { fecha: string; momentoInicial: Momento; nombreInicial?: string; onDone: () => void }) {
+export function RegistroRapido({ fecha, momentoInicial, nombreInicial, onDone }: { fecha: string; momentoInicial: Momento; nombreInicial?: string | undefined; onDone: () => void }) {
   const [nombre, setNombre] = useState(nombreInicial ?? "");
   const [momento, setMomento] = useState<Momento>(momentoInicial);
   const [v, setV] = useState(vacio());

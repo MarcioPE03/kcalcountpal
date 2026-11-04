@@ -19,7 +19,7 @@ describe("recientes", () => {
     const fechaCena = fechaLocal(new Date("2026-11-04T01:00:00Z")); // 22:00 ART del 3/11
     expect(fechaCena).toBe("2026-11-03");
     const g = agruparPorFecha([row("Cena", 600, fechaCena, "2026-11-04T01:00:00Z")], "2026-11-04");
-    expect(g[0].titulo).toBe("Ayer");
+    expect(g[0]!.titulo).toBe("Ayer");
   });
 });
 
@@ -30,7 +30,7 @@ describe("multiplicador", () => {
     expect(escalarComida(item, 0.5).calorias).toBe(65);
     const x = escalarComida(item, 1.5);
     expect(x.calorias).toBe(195);
-    expect(x.ingredientes[0].gramos).toBe(150);
+    expect(x.ingredientes[0]!["gramos"]).toBe(150);
     expect(x.kcal_min).toBe(165);
     expect(escalarComida(item, 2).proteinas_g).toBe(5.4);
   });
@@ -48,7 +48,7 @@ describe("favoritos y registro múltiple", () => {
     expect(fav).not.toHaveProperty("id");
     comida.calorias = 0; // la comida original cambia / se borra
     const filas = filasParaRegistrar([{ clave: fav.clave, item: fav, factor: 1 }], "2026-11-04", "desayuno");
-    expect(filas[0].calorias).toBe(200);
+    expect(filas[0]!.calorias).toBe(200);
   });
   it("favorito manual de Lácteos y huevos cuenta como lácteos en estadísticas", () => {
     const fav = { ...favoritoDesde({ nombre: "Yogur", calorias: 150, ...base, ingredientes: [], categoria: "Lácteos y huevos" }), ingredientes: [] };
@@ -60,6 +60,6 @@ describe("favoritos y registro múltiple", () => {
     const filas = filasParaRegistrar([{ clave: "a", item: a, factor: 1 }, { clave: "b", item: { ...a, nombre: "B" }, factor: 2 }], "2026-11-03", "cena");
     expect(filas).toHaveLength(2);
     expect(filas.every((f) => f.fecha === "2026-11-03" && f.momento === "cena" && f.origen === "copia")).toBe(true);
-    expect(filas[1].calorias).toBe(200);
+    expect(filas[1]!.calorias).toBe(200);
   });
 });

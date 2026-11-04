@@ -90,7 +90,8 @@ export function escalarComida(item: ItemComida, factor: number): Escalado {
   const completos = ings.every(esIngredienteCompleto);
   const nuevos = ings.map((i) => {
     const o: Record<string, unknown> = { ...i };
-    if (typeof i.gramos === "number" || typeof i.gramos === "string") o.gramos = r1(Number(i.gramos) * factor);
+    const g = i["gramos"];
+    if (typeof g === "number" || typeof g === "string") o["gramos"] = r1(Number(g) * factor);
     for (const k of NUTRIENTES) if (i[k] != null) o[k] = r1(Number(i[k]) * factor);
     return o;
   });
@@ -124,7 +125,7 @@ export function filasParaRegistrar(sel: Seleccion[], fecha: string, momento: Mom
 /** Value copy for the favoritos table; never stores the source meal id. */
 export function favoritoDesde(item: ItemComida) {
   const ings = ingredientesDe(item);
-  const cat = ings.find((i) => i.categoria)?.categoria ?? item.categoria;
+  const cat = ings.find((i) => i["categoria"])?.["categoria"] ?? item.categoria;
   const cols = {} as Record<Col, number>;
   for (const k of NUTRIENTES) cols[COLS[k]] = Math.max(0, Number(item[COLS[k]]) || 0);
   return { clave: claveComida(item.nombre, item.calorias), nombre: item.nombre.trim(), categoria: normalizarCategoria(cat), ingredientes: ings, ...cols };

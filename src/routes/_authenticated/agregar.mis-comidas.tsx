@@ -124,7 +124,7 @@ function MisComidas() {
   const filaProps = { sel, toggle, setFactor, favClaves, onFav: (clave: string, item: ItemComida) => favMut.mutate({ clave, item }), favPending: favMut.isPending };
 
   return (
-    <Page className={tab !== "rapido" && sel.size > 0 ? "pb-48" : undefined}>
+    <Page className={tab !== "rapido" && sel.size > 0 ? "pb-48" : ""}>
       <PageHeader title="Mis comidas" back />
       <p className="-mt-3 mb-4 text-sm capitalize text-muted-foreground">{fecha === fechaLocal() ? "Hoy" : fmtFechaCorta(fecha)}</p>
       <Tabs value={tab} onValueChange={(t) => navigate({ to: "/agregar/mis-comidas", search: (p) => ({ ...p, tab: t }), replace: true })}>
@@ -256,7 +256,7 @@ function Buscador({ q, setQ, ayuda }: { q: string; setQ: (s: string) => void; ay
   );
 }
 
-function Recientes({ data, cargando, filaProps }: { data?: Comida[]; cargando: boolean; filaProps: FilaProps }) {
+function Recientes({ data, cargando, filaProps }: { data: Comida[] | undefined; cargando: boolean; filaProps: FilaProps }) {
   const [q, setQ] = useState("");
   const [n, setN] = useState(PAGINA);
   const filtradas = (data ?? []).filter((c) => coincideBusqueda(c.nombre, q));
@@ -277,7 +277,7 @@ function Recientes({ data, cargando, filaProps }: { data?: Comida[]; cargando: b
   );
 }
 
-function Favoritos({ data, cargando, filaProps }: { data?: Favorito[]; cargando: boolean; filaProps: FilaProps }) {
+function Favoritos({ data, cargando, filaProps }: { data: Favorito[] | undefined; cargando: boolean; filaProps: FilaProps }) {
   const [q, setQ] = useState("");
   const [renombrar, setRenombrar] = useState<Favorito | null>(null);
   const [quitar, setQuitar] = useState<Favorito | null>(null);
