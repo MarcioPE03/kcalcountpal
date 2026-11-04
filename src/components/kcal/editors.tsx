@@ -244,16 +244,19 @@ export function NutrientesForm({
   value,
   onChange,
   compacto,
+  resaltar,
 }: {
   value: Nutrientes;
   onChange: (v: Nutrientes) => void;
   compacto?: boolean;
+  /** Fields shown in amber (missing data the user should complete). */
+  resaltar?: readonly string[];
 }) {
   return (
     <div className={cn("grid gap-3", compacto ? "grid-cols-2" : "grid-cols-2")}>
       {NUTRIENTES.map((k) => (
-        <div key={k} className="space-y-1">
-          <Label className="text-xs text-muted-foreground">
+        <div key={k} className={cn("space-y-1", resaltar?.includes(k) && "rounded-xl bg-carbs/15 p-1.5 ring-1 ring-carbs")}>
+          <Label className={cn("text-xs text-muted-foreground", resaltar?.includes(k) && "font-semibold text-foreground")}>
             {NUTRIENTE_LABEL[k]} ({NUTRIENTE_UNIDAD[k]})
           </Label>
           <NumberInput value={value[k]} onChange={(n) => onChange({ ...value, [k]: n })} />
