@@ -107,3 +107,36 @@ describe("fechas del calendario", () => {
     expect(tituloLista("2026-11-02", "2026-11-03")).toBe("Lunes 2 de noviembre");
   });
 });
+
+import { balanceDia, validarQuemadas } from "./nutri";
+describe("balance con entrenamientos", () => {
+  it("restantes sin entrenamientos", () => {
+    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 0, sumarQuemadas: true }).restante).toBe(500);
+  });
+  it("restantes suma quemadas si el interruptor está activado", () => {
+    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 300, sumarQuemadas: true }).restante).toBe(800);
+  });
+  it("con interruptor apagado las quemadas no cambian el restante", () => {
+    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 300, sumarQuemadas: false }).restante).toBe(500);
+  });
+  it("progreso del anillo según el interruptor", () => {
+    expect(balanceDia({ consumidas: 1150, limite: 2000, quemadas: 300, sumarQuemadas: true }).progreso).toBe(0.5);
+    expect(balanceDia({ consumidas: 1000, limite: 2000, quemadas: 300, sumarQuemadas: false }).progreso).toBe(0.5);
+  });
+  it("progreso con tope del 100 % y límite 0", () => {
+    expect(balanceDia({ consumidas: 3000, limite: 2000, quemadas: 0, sumarQuemadas: true }).progreso).toBe(1);
+    expect(balanceDia({ consumidas: 0, limite: 0, quemadas: 0, sumarQuemadas: true }).progreso).toBe(0);
+    expect(balanceDia({ consumidas: 500, limite: 0, quemadas: 0, sumarQuemadas: false }).progreso).toBe(1);
+  });
+  it("muestra kcal de más al pasarse", () => {
+    const b = balanceDia({ consumidas: 2400, limite: 2000, quemadas: 200, sumarQuemadas: true });
+    expect(b).toMatchObject({ restante: 0, excedido: 200, leyenda: "kcal de más" });
+  });
+  it("valida rango de kcal quemadas", () => {
+    expect(validarQuemadas(0)).not.toBeNull();
+    expect(validarQuemadas(5001)).not.toBeNull();
+    expect(validarQuemadas(null)).not.toBeNull();
+    expect(validarQuemadas(1)).toBeNull();
+    expect(validarQuemadas(5000)).toBeNull();
+  });
+});
