@@ -20,6 +20,7 @@ import { Route as AuthenticatedAgregarCodigoRouteImport } from './routes/_authen
 import { Route as AuthenticatedAgregarDescribirRouteImport } from './routes/_authenticated/agregar.describir'
 import { Route as AuthenticatedAgregarFotoRouteImport } from './routes/_authenticated/agregar.foto'
 import { Route as AuthenticatedAgregarManualRouteImport } from './routes/_authenticated/agregar.manual'
+import { Route as AuthenticatedAgregarMisComidasRouteImport } from './routes/_authenticated/agregar.mis-comidas'
 import { Route as AuthenticatedAgregarRevisarRouteImport } from './routes/_authenticated/agregar.revisar'
 import { Route as AuthenticatedComidaIdRouteImport } from './routes/_authenticated/comida.$id'
 import { Route as AuthenticatedDiaFechaRouteImport } from './routes/_authenticated/dia.$fecha'
@@ -83,6 +84,12 @@ const AuthenticatedAgregarManualRoute =
     path: '/agregar/manual',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAgregarMisComidasRoute =
+  AuthenticatedAgregarMisComidasRouteImport.update({
+    id: '/agregar/mis-comidas',
+    path: '/agregar/mis-comidas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAgregarRevisarRoute =
   AuthenticatedAgregarRevisarRouteImport.update({
     id: '/agregar/revisar',
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
+  '/agregar/mis-comidas': typeof AuthenticatedAgregarMisComidasRoute
   '/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
   '/comida/$id': typeof AuthenticatedComidaIdRoute
   '/dia/$fecha': typeof AuthenticatedDiaFechaRoute
@@ -125,6 +133,7 @@ export interface FileRoutesByTo {
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
+  '/agregar/mis-comidas': typeof AuthenticatedAgregarMisComidasRoute
   '/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
   '/comida/$id': typeof AuthenticatedComidaIdRoute
   '/dia/$fecha': typeof AuthenticatedDiaFechaRoute
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/_authenticated/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
   '/_authenticated/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/_authenticated/agregar/manual': typeof AuthenticatedAgregarManualRoute
+  '/_authenticated/agregar/mis-comidas': typeof AuthenticatedAgregarMisComidasRoute
   '/_authenticated/agregar/revisar': typeof AuthenticatedAgregarRevisarRoute
   '/_authenticated/comida/$id': typeof AuthenticatedComidaIdRoute
   '/_authenticated/dia/$fecha': typeof AuthenticatedDiaFechaRoute
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/agregar/describir'
     | '/agregar/foto'
     | '/agregar/manual'
+    | '/agregar/mis-comidas'
     | '/agregar/revisar'
     | '/comida/$id'
     | '/dia/$fecha'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/agregar/describir'
     | '/agregar/foto'
     | '/agregar/manual'
+    | '/agregar/mis-comidas'
     | '/agregar/revisar'
     | '/comida/$id'
     | '/dia/$fecha'
@@ -190,6 +202,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agregar/describir'
     | '/_authenticated/agregar/foto'
     | '/_authenticated/agregar/manual'
+    | '/_authenticated/agregar/mis-comidas'
     | '/_authenticated/agregar/revisar'
     | '/_authenticated/comida/$id'
     | '/_authenticated/dia/$fecha'
@@ -280,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgregarManualRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agregar/mis-comidas': {
+      id: '/_authenticated/agregar/mis-comidas'
+      path: '/agregar/mis-comidas'
+      fullPath: '/agregar/mis-comidas'
+      preLoaderRoute: typeof AuthenticatedAgregarMisComidasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agregar/revisar': {
       id: '/_authenticated/agregar/revisar'
       path: '/agregar/revisar'
@@ -313,6 +333,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgregarDescribirRoute: typeof AuthenticatedAgregarDescribirRoute
   AuthenticatedAgregarFotoRoute: typeof AuthenticatedAgregarFotoRoute
   AuthenticatedAgregarManualRoute: typeof AuthenticatedAgregarManualRoute
+  AuthenticatedAgregarMisComidasRoute: typeof AuthenticatedAgregarMisComidasRoute
   AuthenticatedAgregarRevisarRoute: typeof AuthenticatedAgregarRevisarRoute
   AuthenticatedComidaIdRoute: typeof AuthenticatedComidaIdRoute
   AuthenticatedDiaFechaRoute: typeof AuthenticatedDiaFechaRoute
@@ -328,6 +349,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgregarDescribirRoute: AuthenticatedAgregarDescribirRoute,
   AuthenticatedAgregarFotoRoute: AuthenticatedAgregarFotoRoute,
   AuthenticatedAgregarManualRoute: AuthenticatedAgregarManualRoute,
+  AuthenticatedAgregarMisComidasRoute: AuthenticatedAgregarMisComidasRoute,
   AuthenticatedAgregarRevisarRoute: AuthenticatedAgregarRevisarRoute,
   AuthenticatedComidaIdRoute: AuthenticatedComidaIdRoute,
   AuthenticatedDiaFechaRoute: AuthenticatedDiaFechaRoute,

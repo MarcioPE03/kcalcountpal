@@ -166,7 +166,7 @@ export function AnalizarFlow({ conFoto, momento, descInicial }: { conFoto: boole
               <RefreshCw className="size-3.5" /> Reintentar
             </Button>
             <Button size="sm" variant="ghost" className="rounded-full" asChild>
-              <Link to="/agregar/manual" search={{ momento }}>Cargar manualmente</Link>
+              <Link to="/agregar/mis-comidas" search={{ tab: "rapido", momento }}>Cargar manualmente</Link>
             </Button>
           </div>
         </div>

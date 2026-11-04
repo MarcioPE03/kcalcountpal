@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import {
   borrarFavoritoPorClave, copiaDe, crearComida, crearFavorito, favoritosQuery, recientesQuery, registrarVarias, renombrarFavorito, uid,
-  type Favorito,
+  type Comida, type Favorito,
 } from "@/lib/data";
 import {
   FACTORES_RAPIDOS, MAX_SELECCION, agruparPorFecha, claveComida, coincideBusqueda, escalarComida, filasParaRegistrar, validarFactor,
@@ -255,7 +255,7 @@ function Buscador({ q, setQ, ayuda }: { q: string; setQ: (s: string) => void; ay
   );
 }
 
-function Recientes({ data, cargando, filaProps }: { data?: Awaited<ReturnType<NonNullable<ReturnType<typeof recientesQuery>["queryFn"]>>>; cargando: boolean; filaProps: FilaProps }) {
+function Recientes({ data, cargando, filaProps }: { data?: Comida[]; cargando: boolean; filaProps: FilaProps }) {
   const [q, setQ] = useState("");
   const [n, setN] = useState(PAGINA);
   const filtradas = (data ?? []).filter((c) => coincideBusqueda(c.nombre, q));
@@ -294,7 +294,7 @@ function Favoritos({ data, cargando, filaProps }: { data?: Favorito[]; cargando:
       )}
       {!cargando && (data?.length ?? 0) > 0 && filtrados.length === 0 && <p className="py-3 text-sm text-muted-foreground">No encontramos favoritos con ese nombre.</p>}
       {filtrados.map((f) => (
-        <Fila key={f.id} item={{ ...f, nombre: f.nombre }} p={{ ...filaProps, sel: filaProps.sel }} menu={
+        <Fila key={f.id} item={f} p={filaProps} menu={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button aria-label="Opciones" className="rounded-full p-2 text-muted-foreground"><MoreVertical className="size-5" /></button>
