@@ -1,5 +1,5 @@
 // Pure Open Food Facts helpers: barcode validation, parsing, coherence checks, quantity math.
-import { NUTRIENTES, vacio, type Nutrientes } from "./nutri";
+import { NUTRIENTES, vacio, type NutrienteKey, type Nutrientes } from "./nutri";
 
 /** Valid EAN-13, EAN-8 or UPC-A (12 digits) with a correct check digit. */
 export function codigoValido(code: string): boolean {
@@ -26,9 +26,22 @@ export type ProductoOFF = {
   por100: Nutrientes;
   porcion_g: number | null;
   porcion_ml: boolean;
+  /** Secondary nutrients missing (counted as 0). */
   faltantes: string[];
+  /** Main macros missing (counted as 0, highlighted in review). Optional for older drafts. */
+  faltantesPrincipales?: NutrienteKey[];
   inconsistente: boolean;
+  /** '100g': por100 is per 100 g. 'porcion': por100 holds per-serving values (serving weight unknown). */
+  base?: Base;
+  fuente?: Fuente;
+  marca?: string | null;
+  categoria?: string | null;
+  /** Label reading only had "prepared" values. */
+  soloPreparado?: boolean;
 };
+
+export type Base = "100g" | "porcion";
+export type Fuente = "off" | "propio" | "etiqueta";
 
 export type ParseOFF =
   | { ok: true; producto: ProductoOFF }
@@ -92,7 +105,13 @@ export function parseProducto(codigo: string, p: Record<string, unknown> | null 
   const prot = num(n["proteins_100g"]);
   const carb = num(n["carbohydrates_100g"]);
   const gras = num(n["fat_100g"]);
-  if (kcal === null || prot === null || carb === null || gras === null) return { ok: false, motivo: "sin_datos", nombre };
+  const macrosCompletos = prot !== null && carb !== null && gras !== null;
+  if (kcal === null && !macrosCompletos) return { ok: false, motivo: "sin_datos", nombre };
+  const faltantesPrincipales: NutrienteKey[] = [];
+  if (prot === null) faltantesPrincipales.push("proteinas");
+  if (carb === null) faltantesPrincipales.push("carbohidratos");
+  if (gras === null) faltantesPrincipales.push("grasas");
+  const kcalFinal = kcal ?? Math.round((4 * prot! + 4 * carb! + 9 * gras!) * 10) / 10;
 
   const faltantes: string[] = [];
   const opt = (key: string, label: string) => {
@@ -103,10 +122,10 @@ export function parseProducto(codigo: string, p: Record<string, unknown> | null 
   const sodio = sodioMgDe(n);
   if (sodio === null) faltantes.push("sodio");
   const por100: Nutrientes = {
-    calorias: kcal,
-    proteinas: prot,
-    carbohidratos: carb,
-    grasas: gras,
+    calorias: kcalFinal,
+    proteinas: prot ?? 0,
+    carbohidratos: carb ?? 0,
+    grasas: gras ?? 0,
     grasas_saturadas: opt("saturated-fat_100g", "grasas saturadas"),
     fibra: opt("fiber_100g", "fibra"),
     azucares: opt("sugars_100g", "azúcares"),
@@ -123,7 +142,11 @@ export function parseProducto(codigo: string, p: Record<string, unknown> | null 
       porcion_g: porcion.g,
       porcion_ml: porcion.ml,
       faltantes,
-      inconsistente: kcalInconsistentes(por100, num(n["alcohol_100g"]) ?? 0),
+      faltantesPrincipales,
+      inconsistente: faltantesPrincipales.length === 0 && kcalInconsistentes(por100, num(n["alcohol_100g"]) ?? 0),
+      base: "100g",
+      fuente: "off",
+      marca: String(p["brands"] || "").split(",")[0]?.trim() || null,
     },
   };
 }
@@ -139,4 +162,122 @@ export function valoresPara(por100: Nutrientes, gramos: number): Nutrientes {
   const v = vacio();
   for (const k of NUTRIENTES) v[k] = Math.round(((por100[k] * gramos) / 100) * 10) / 10;
   return v;
+}
+
+/** Every code is stored/queried as EAN-13: UPC-A gets one leading 0, EAN-8 is left-padded to 13. */
+export function normalizarCodigo(code: string): string {
+  const c = code.replace(/\s/g, "");
+  return c.length >= 13 ? c : c.padStart(13, "0");
+}
+
+/** A product/meal can be saved only when its kcal are known or derivable from the 3 macros. */
+export function puedeGuardar(v: Partial<Record<NutrienteKey, number | null>>): boolean {
+  const ok = (x: number | null | undefined) => typeof x === "number" && Number.isFinite(x) && x >= 0;
+  return ok(v.calorias) || (ok(v.proteinas) && ok(v.carbohidratos) && ok(v.grasas));
+}
+
+/** Converts values for one serving of `porcion_g` grams (ml = g) into values per 100 g. */
+export function aPor100(v: Nutrientes, porcion_g: number): Nutrientes {
+  const out = vacio();
+  for (const k of NUTRIENTES) out[k] = Math.round(((v[k] * 100) / porcion_g) * 10) / 10;
+  return out;
+}
+
+/** Nutrients for a quantity: grams for base '100g', servings for base 'porcion'. */
+export function valoresProducto(p: Pick<ProductoOFF, "por100" | "base">, gramosOPorciones: number): Nutrientes {
+  return p.base === "porcion" ? valoresPara(p.por100, gramosOPorciones * 100) : valoresPara(p.por100, gramosOPorciones);
+}
+
+/** User's own product always wins over Open Food Facts. */
+export function resolverProducto<T>(propio: T | null | undefined, off: T | null | undefined): { producto: T; fuente: "propio" | "off" } | null {
+  if (propio) return { producto: propio, fuente: "propio" };
+  if (off) return { producto: off, fuente: "off" };
+  return null;
+}
+
+export type FilaProductoPropio = {
+  codigo: string; nombre: string; marca: string | null; categoria: string; base: string;
+  porcion_g: number | null; porcion_ml: boolean;
+} & Record<NutrienteKey, number | null>;
+
+export function productoDesdePropio(r: FilaProductoPropio): ProductoOFF {
+  const por100 = vacio();
+  const faltantesPrincipales: NutrienteKey[] = [];
+  const faltantes: string[] = [];
+  for (const k of NUTRIENTES) {
+    const v = r[k];
+    if (v === null || v === undefined) {
+      if (k === "proteinas" || k === "carbohidratos" || k === "grasas") faltantesPrincipales.push(k);
+      else if (k !== "calorias") faltantes.push(k);
+    }
+    por100[k] = Number(v ?? 0);
+  }
+  return {
+    codigo: r.codigo, nombre: r.nombre, por100, porcion_g: r.porcion_g ? Number(r.porcion_g) : null, porcion_ml: r.porcion_ml,
+    faltantes, faltantesPrincipales, inconsistente: false, base: r.base === "porcion" ? "porcion" : "100g",
+    fuente: "propio", marca: r.marca, categoria: r.categoria,
+  };
+}
+
+// ---------- Nutrition label reading (AI output → normalized product) ----------
+
+export type LecturaEtiqueta = {
+  es_etiqueta: boolean;
+  nombre: string | null;
+  columna: "100g" | "porcion" | null;
+  porcion_cantidad: number | null;
+  porcion_unidad: "g" | "ml" | "unidad" | null;
+  solo_preparado: boolean;
+  kcal: number | null;
+  kj: number | null;
+  proteinas: number | null;
+  carbohidratos: number | null;
+  grasas: number | null;
+  grasas_saturadas: number | null;
+  fibra: number | null;
+  azucares: number | null;
+  sodio_mg: number | null;
+  sal_g: number | null;
+};
+
+/** null = not on the label; 0 = label says 0 / "no aporta cantidades significativas". */
+export function normalizarEtiqueta(codigo: string, l: LecturaEtiqueta, nombreFallback?: string | null): ParseOFF {
+  const nombre = l.nombre?.trim() || nombreFallback || null;
+  if (!l.es_etiqueta) return { ok: false, motivo: "sin_datos", nombre };
+  const n: Record<string, unknown> = {
+    "energy-kcal_100g": l.kcal, "energy-kj_100g": l.kj,
+    proteins_100g: l.proteinas, carbohydrates_100g: l.carbohidratos, fat_100g: l.grasas,
+    "saturated-fat_100g": l.grasas_saturadas, fiber_100g: l.fibra, sugars_100g: l.azucares,
+    sodium_100g: l.sodio_mg === null ? null : l.sodio_mg / 1000, salt_100g: l.sal_g,
+  };
+  const porcionG = l.porcion_cantidad && l.porcion_cantidad > 0 && l.porcion_cantidad <= PORCION_MAX_G && (l.porcion_unidad === "g" || l.porcion_unidad === "ml")
+    ? l.porcion_cantidad : null;
+  const porcionMl = l.porcion_unidad === "ml";
+  // Per-serving column: parse as-is then scale to 100 g when the serving weight is known.
+  const r = parseProducto(codigo, { product_name: nombre ?? "", nutriments: l.columna === "porcion" && !porcionG ? n : n });
+  if (l.columna !== "porcion") {
+    if (!r.ok) return r;
+    return { ok: true, producto: { ...r.producto, nombre: nombre || "Producto", porcion_g: porcionG, porcion_ml: porcionMl, fuente: "etiqueta", marca: null, soloPreparado: l.solo_preparado } };
+  }
+  // Per-serving values: invalid-check after scaling (per-serving values can legitimately exceed 100 g caps).
+  const rs = parsePorcion(codigo, n, nombre);
+  if (!rs.ok) return rs;
+  const p = rs.producto;
+  if (porcionG) {
+    const por100 = aPor100(p.por100, porcionG);
+    if (datosInvalidos(por100)) return { ok: false, motivo: "invalido", nombre };
+    return { ok: true, producto: { ...p, por100, porcion_g: porcionG, porcion_ml: porcionMl, base: "100g", inconsistente: (p.faltantesPrincipales ?? []).length === 0 && kcalInconsistentes(por100), soloPreparado: l.solo_preparado } };
+  }
+  return { ok: true, producto: { ...p, porcion_g: null, porcion_ml: false, base: "porcion", soloPreparado: l.solo_preparado } };
+}
+
+function parsePorcion(codigo: string, n: Record<string, unknown>, nombre: string | null): ParseOFF {
+  // Reuse parseProducto with a huge-scale trick avoided: scale down by 10 to dodge the per-100 caps, then scale back.
+  const scaled: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(n)) scaled[k] = typeof v === "number" ? v / 10 : v;
+  const r = parseProducto(codigo, { product_name: nombre ?? "", nutriments: scaled });
+  if (!r.ok) return r;
+  const por100 = vacio();
+  for (const k of NUTRIENTES) por100[k] = Math.round(r.producto.por100[k] * 10 * 10) / 10;
+  return { ok: true, producto: { ...r.producto, nombre: nombre || "Producto", por100, fuente: "etiqueta", marca: null } };
 }
