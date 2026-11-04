@@ -113,6 +113,39 @@ export type Database = {
         }
         Relationships: []
       }
+      entrenamientos: {
+        Row: {
+          calorias_quemadas: number
+          created_at: string
+          duracion_min: number | null
+          fecha: string
+          id: string
+          nombre: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calorias_quemadas: number
+          created_at?: string
+          duracion_min?: number | null
+          fecha: string
+          id?: string
+          nombre: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calorias_quemadas?: number
+          created_at?: string
+          duracion_min?: number | null
+          fecha?: string
+          id?: string
+          nombre?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       metas_diarias: {
         Row: {
           azucares_g: number | null
@@ -194,6 +227,7 @@ export type Database = {
           peso_kg: number | null
           peso_meta_kg: number | null
           sexo: string | null
+          sumar_quemadas: boolean
         }
         Insert: {
           altura_cm?: number | null
@@ -209,6 +243,7 @@ export type Database = {
           peso_kg?: number | null
           peso_meta_kg?: number | null
           sexo?: string | null
+          sumar_quemadas?: boolean
         }
         Update: {
           altura_cm?: number | null
@@ -224,6 +259,7 @@ export type Database = {
           peso_kg?: number | null
           peso_meta_kg?: number | null
           sexo?: string | null
+          sumar_quemadas?: boolean
         }
         Relationships: []
       }
