@@ -263,7 +263,7 @@ function Escaner({ momento }: { momento: Momento }) {
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="rounded-full" asChild>
-              <Link to="/agregar/manual" search={{ momento }}><PenLine className="size-3.5" /> Cargar manualmente</Link>
+              <Link to="/agregar/mis-comidas" search={{ tab: "rapido", momento, nombre: fallo.nombre ?? undefined }}><PenLine className="size-3.5" /> Cargar manualmente</Link>
             </Button>
             <Button size="sm" variant="outline" className="rounded-full" asChild>
               <Link to="/agregar/describir" search={{ momento, texto: fallo.nombre ?? undefined }}>

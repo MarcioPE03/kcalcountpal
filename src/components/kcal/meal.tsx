@@ -3,7 +3,7 @@ import { Camera, MessageSquareText, PenLine, Copy, ScanBarcode } from "lucide-re
 import type { Comida } from "@/lib/data";
 import { MOMENTOS, fmt } from "@/lib/nutri";
 
-const ICONO = { foto: Camera, texto: MessageSquareText, manual: PenLine, copia: Copy, codigo: ScanBarcode } as const;
+export const ICONO = { foto: Camera, texto: MessageSquareText, manual: PenLine, copia: Copy, codigo: ScanBarcode } as const;
 
 export function MealRow({ c }: { c: Comida }) {
   const Icon = ICONO[c.origen as keyof typeof ICONO] ?? PenLine;

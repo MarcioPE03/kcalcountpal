@@ -18,3 +18,4 @@
 - Weight history lives only in the `pesos` table (one row per user/day); never write `profiles.peso_kg` (deprecated) so there is a single source of truth.
 - Barcode products come from Open Food Facts via a server function; parsing/coherence rules live in pure `src/lib/off.ts` (tested in `off.test.ts`).
 - Day balance (remaining, ring progress, burned-kcal validation) lives in pure `balanceDia`/`validarQuemadas` in `nutri.ts`; UI never recomputes it.
+- Favorites are independent value copies in `favoritos` keyed by `claveComida` (unique per user); never reference `comidas` rows. "Mis comidas" rules (dedup, scaling, bulk rows) live in pure `src/lib/mis-comidas.ts` (tested in `mis-comidas.test.ts`).

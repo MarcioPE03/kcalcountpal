@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { Heart, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
@@ -15,8 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  borrarComida, comidaANutrientes, comidaQuery, leerIngredientes, nutrientesAColumnas, type Comida,
+  borrarComida, borrarFavoritoPorClave, crearFavorito, favoritosQuery, comidaANutrientes, comidaQuery, leerIngredientes, nutrientesAColumnas, type Comida,
 } from "@/lib/data";
+import { claveComida } from "@/lib/mis-comidas";
 import { MOMENTOS, fmt, fmtFechaCorta, fmtRango, sumar, type Momento } from "@/lib/nutri";
 
 export const Route = createFileRoute("/_authenticated/comida/$id")({
@@ -46,9 +47,10 @@ function Detalle() {
   const ings = leerIngredientes(c);
   return (
     <Page>
-      <PageHeader title="Detalle" back right={
+      <PageHeader title="Detalle" back right={<>
+        <FavBoton c={c} />
         <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setEditando(true)} aria-label="Editar"><Pencil className="size-5" /></Button>
-      } />
+      </>} />
       <Card>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {MOMENTOS.find((m) => m.key === c.momento)?.label} · <span className="capitalize">{fmtFechaCorta(c.fecha)}</span>
@@ -79,6 +81,29 @@ function Detalle() {
   );
 }
 
+function FavBoton({ c }: { c: Comida }) {
+  const qc = useQueryClient();
+  const favs = useQuery(favoritosQuery());
+  const clave = claveComida(c.nombre, c.calorias);
+  const esFav = !!favs.data?.some((f) => f.clave === clave);
+  const [ocupado, setOcupado] = useState(false);
+  return (
+    <Button variant="ghost" size="icon" className="rounded-full text-primary" disabled={ocupado || favs.isLoading}
+      aria-label={esFav ? "Quitar de favoritos" : "Agregar a favoritos"}
+      onClick={async () => {
+        setOcupado(true);
+        try {
+          if (esFav) await borrarFavoritoPorClave(clave); else await crearFavorito(c);
+          await qc.invalidateQueries({ queryKey: ["favoritos"] });
+          toast.success(esFav ? "Quitada de favoritos" : "Guardada en favoritos");
+        } catch { toast.error("No se pudo actualizar el favorito."); }
+        setOcupado(false);
+      }}>
+      <Heart className={esFav ? "size-5 fill-current" : "size-5"} />
+    </Button>
+  );
+}
+
 function BorrarBoton({ c }: { c: Comida }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -93,7 +118,7 @@ function BorrarBoton({ c }: { c: Comida }) {
       <AlertDialogContent className="rounded-3xl">
         <AlertDialogHeader>
           <AlertDialogTitle>¿Borrar “{c.nombre}”?</AlertDialogTitle>
-          <AlertDialogDescription>Se borra del diario junto con su foto. No se puede deshacer.</AlertDialogDescription>
+          <AlertDialogDescription>Se borra del diario. Si es favorita, el favorito se conserva. No se puede deshacer.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
