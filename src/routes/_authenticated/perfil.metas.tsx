@@ -73,7 +73,7 @@ function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; in
 
   const kcalNum = parseNum(kcalTxt);
   const kcalOk = kcalMetaValida(kcalNum);
-  const dirty = kcalNum !== inicial.kcal || !iguales(pct, inicial.pct) || derivado;
+  const dirty = kcalNum !== inicial.kcal || !iguales(pct, inicial.pct);
   const gramos = useMemo(() => {
     const g = gramosDesdePct(kcal, pct);
     return { proteinas: g.proteinas_g, carbohidratos: g.carbohidratos_g, grasas: g.grasas_g };
@@ -176,7 +176,7 @@ function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; in
           </Button>
         </div>
         {!kcalOk && (
-          <p className="mt-2 text-center text-xs text-carbs-foreground text-muted-foreground">
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             Ingresá un valor entre {fmt(KCAL_META_MIN)} y {fmt(KCAL_META_MAX)} kcal.
           </p>
         )}
@@ -243,7 +243,7 @@ function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; in
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur">
         <div className="mx-auto flex max-w-md gap-2">
-          <Button variant="ghost" className="rounded-full" onClick={restablecer} disabled={guardando || (!dirty && !derivado)}>
+          <Button variant="ghost" className="rounded-full" onClick={restablecer} disabled={guardando || !dirty}>
             Restablecer
           </Button>
           <Button className="flex-1 rounded-full" onClick={guardar} disabled={guardando || !kcalOk || suma !== 100}>
