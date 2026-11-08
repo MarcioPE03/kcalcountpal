@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Loader2, Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
 import { IngredientesEditor, MomentoPicker, NutrientesForm } from "@/components/kcal/editors";
+import { CorregirConIA } from "@/components/kcal/corregir-ia";
 import { ConfianzaBadge, TotalesGrid } from "@/components/kcal/totales";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -18,6 +19,7 @@ import {
   borrarComida, borrarFavoritoPorClave, crearFavorito, favoritosQuery, comidaANutrientes, comidaQuery, leerIngredientes, nutrientesAColumnas, type Comida,
 } from "@/lib/data";
 import { claveComida } from "@/lib/mis-comidas";
+import { escalarRango } from "@/lib/correccion";
 import { MOMENTOS, fmt, fmtFechaCorta, fmtRango, sumar, type Momento } from "@/lib/nutri";
 
 export const Route = createFileRoute("/_authenticated/comida/$id")({
@@ -153,37 +155,50 @@ function Editar({ c, onDone }: { c: Comida; onDone: () => void }) {
   const ings0 = leerIngredientes(c);
   const [nombre, setNombre] = useState(c.nombre);
   const [momento, setMomento] = useState<Momento>(c.momento as Momento);
-  const [items, setItems] = useState(ings0);
-  const [manual, setManual] = useState(comidaANutrientes(c));
+  const ings0Ref = useRef(ings0);
+  const [items, setItems] = useState(ings0Ref.current);
+  const manual0Ref = useRef(comidaANutrientes(c));
+  const [manual, setManual] = useState(manual0Ref.current);
   const [guardando, setGuardando] = useState(false);
   const conIngredientes = ings0.length > 0;
   const t = conIngredientes ? sumar(items) : manual;
+  const sucio = nombre !== c.nombre || momento !== c.momento || items !== ings0Ref.current || manual !== manual0Ref.current;
+  const salirOk = useRef(false);
+  const blocker = useBlocker({ shouldBlockFn: () => sucio && !salirOk.current, withResolver: true });
+  const [confirmarSalir, setConfirmarSalir] = useState(false);
 
   async function guardar() {
     setGuardando(true);
     const t0 = Number(c.calorias);
-    const ratio = t0 > 0 ? t.calorias / t0 : 1;
+    // Hand-edited totals drop the AI range; otherwise it scales with the new total. Confidence is kept.
+    const rango = !conIngredientes && manual !== manual0Ref.current
+      ? { min: null, max: null }
+      : escalarRango(c.kcal_min != null ? Number(c.kcal_min) : null, c.kcal_max != null ? Number(c.kcal_max) : null, t0, t.calorias);
     const { error } = await supabase.from("comidas").update({
       nombre: nombre.trim() || c.nombre,
       momento,
       ingredientes: (conIngredientes ? items : c.ingredientes) as never,
-      kcal_min: c.kcal_min != null ? Math.round(Number(c.kcal_min) * ratio) : null,
-      kcal_max: c.kcal_max != null ? Math.round(Number(c.kcal_max) * ratio) : null,
+      kcal_min: rango.min,
+      kcal_max: rango.max,
       updated_at: new Date().toISOString(),
       ...nutrientesAColumnas(t),
     }).eq("id", c.id);
     setGuardando(false);
     if (error) { toast.error("No se pudo guardar."); return; }
-    qc.invalidateQueries({ queryKey: ["comida", c.id] });
-    qc.invalidateQueries({ queryKey: ["comidas"] });
-    qc.invalidateQueries({ queryKey: ["comidas-rango"] });
+    for (const k of ["comida", "comidas", "comidas-rango", "comidas-fechas", "recientes"]) qc.invalidateQueries({ queryKey: [k] });
     toast.success("Cambios guardados");
+    salirOk.current = true;
     onDone();
+  }
+
+  function cancelar() {
+    if (sucio) setConfirmarSalir(true);
+    else onDone();
   }
 
   return (
     <Page>
-      <PageHeader title="Editar comida" right={<Button variant="ghost" onClick={onDone}>Cancelar</Button>} />
+      <PageHeader title="Editar comida" right={<Button variant="ghost" onClick={cancelar}>Cancelar</Button>} />
       <Card className="space-y-4">
         <Input value={nombre} onChange={(e) => setNombre(e.target.value)} className="font-semibold" aria-label="Nombre" />
         <p className="font-display text-2xl font-extrabold text-primary tabular">{fmt(t.calorias)} kcal</p>
@@ -192,11 +207,28 @@ function Editar({ c, onDone }: { c: Comida; onDone: () => void }) {
       <div className="mt-5">
         {conIngredientes ? <IngredientesEditor items={items} onChange={setItems} /> : <Card><NutrientesForm value={manual} onChange={setManual} /></Card>}
       </div>
+      {conIngredientes && <CorregirConIA items={items} nombrePlato={nombre} onAplicar={setItems} />}
       <h2 className="mb-2 mt-6 text-sm font-semibold text-muted-foreground">Momento del día</h2>
       <MomentoPicker value={momento} onChange={setMomento} />
       <Button className="mt-8 h-13 w-full rounded-full text-base" disabled={guardando} onClick={guardar}>
         {guardando && <Loader2 className="size-4 animate-spin" />} Guardar cambios
       </Button>
+      <AlertDialog open={confirmarSalir || blocker.status === "blocked"} onOpenChange={(o) => { if (!o) { setConfirmarSalir(false); if (blocker.status === "blocked") blocker.reset(); } }}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
+            <AlertDialogDescription>Tenés cambios sin guardar en esta comida.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setConfirmarSalir(false);
+              if (blocker.status === "blocked") blocker.proceed();
+              else onDone();
+            }}>Salir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Page>
   );
 }

@@ -13,7 +13,7 @@ describe("categorías", () => {
   it("la IA con categoría inválida no rechaza el análisis", () => {
     const r = procesarRespuesta({
       es_comida: true, motivo_rechazo: null, nombre_plato: "Mate", confianza: "alta", kcal_min: 0, kcal_max: 0, nota: null,
-      ingredientes: [{ nombre: "Yerba", categoria: "Infusiones", gramos: 10, calorias: 4, proteinas: 0, carbohidratos: 1, grasas: 0, grasas_saturadas: 0, fibra: 0, azucares: 0, sodio_mg: 0 }],
+      ingredientes: [{ nombre: "Yerba", categoria: "Infusiones", gramos: 10, calorias: 4, proteinas: 0, carbohidratos: 1, grasas: 0, grasas_saturadas: 0, fibra: 0, azucares: 0, sodio_mg: 0, descartable: false }],
     });
     expect(r.ingredientes[0]!.categoria).toBe("Otros");
   });

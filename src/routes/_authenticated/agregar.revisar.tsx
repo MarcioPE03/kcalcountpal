@@ -5,6 +5,7 @@ import { AlertTriangle, Info, Loader2, PenLine, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
+import { CorregirConIA } from "@/components/kcal/corregir-ia";
 import { CategoriaSelect, IngredientesEditor, MomentoPicker, NutrientesForm } from "@/components/kcal/editors";
 import { ConfianzaBadge, TotalesGrid } from "@/components/kcal/totales";
 import { Button } from "@/components/ui/button";
@@ -304,6 +305,7 @@ function Editor({ momentoInicial }: { momentoInicial: Momento }) {
         <>
           <h2 className="mb-2 mt-6 text-sm font-semibold text-muted-foreground">Ingredientes · es una estimación, ajustala</h2>
           <IngredientesEditor items={items} onChange={setItems} />
+          <CorregirConIA items={items} nombrePlato={nombre} imagen={b.origen === "foto" ? b.fotoUrl : null} onAplicar={setItems} />
         </>
       )}
 

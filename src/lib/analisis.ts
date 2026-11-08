@@ -26,6 +26,8 @@ export const IngredienteIA = z.object({
   fibra: z.number(),
   azucares: z.number(),
   sodio_mg: z.number(),
+  /** Visible fat / chicken skin row (validated against a closed list by filtrarDescartables). */
+  descartable: z.boolean(),
 });
 
 export const RespuestaIA = z.object({
@@ -58,8 +60,10 @@ export function procesarRespuesta(r: RespuestaIA): ResultadoAnalisis {
     .map((i, idx) => {
       const v = vacio();
       for (const k of NUTRIENTES) v[k] = Math.max(0, Number(i[k]) || 0);
-      return crearIngrediente(`ia-${idx}`, i.nombre.trim(), Math.max(0, Math.round(i.gramos)), v, normalizarCategoria(i.categoria));
+      const ing = crearIngrediente(`ia-${idx}`, i.nombre.trim(), Math.max(0, Math.round(i.gramos)), v, normalizarCategoria(i.categoria));
+      return i.descartable ? { ...ing, descartable: true } : ing;
     });
+  ingredientes = filtrarDescartables(r.nombre_plato, ingredientes);
   let totales = sumar(ingredientes);
   let confianza: Confianza = r.confianza;
   let kcal_min = r.kcal_min;
@@ -75,7 +79,8 @@ export function procesarRespuesta(r: RespuestaIA): ResultadoAnalisis {
         totales.calorias > 0
           ? Math.round(ing.calorias * ratio * 10) / 10
           : Math.round((4 * ing.proteinas + 4 * ing.carbohidratos + 9 * ing.grasas) * 10) / 10;
-      return crearIngrediente(ing.id, ing.nombre, ing.gramos, v, ing.categoria);
+      const nuevo = crearIngrediente(ing.id, ing.nombre, ing.gramos, v, ing.categoria);
+      return ing.descartable ? { ...nuevo, descartable: true } : nuevo;
     });
     totales = sumar(ingredientes);
     confianza = bajarConfianza(confianza);
@@ -106,3 +111,51 @@ export type AnalisisRespuesta =
       codigo: "no_comida" | "limite" | "creditos" | "rate" | "invalido" | "error";
       mensaje: string;
     };
+
+// ---------- Visible fat / chicken skin (closed list) ----------
+
+const sinAcentos = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const tiene = (texto: string, palabras: readonly string[]) => {
+  const t = ` ${sinAcentos(texto).replace(/[^a-z0-9ñ]+/g, " ")} `;
+  return palabras.some((p) => t.includes(` ${p} `) || t.includes(` ${p}s `) || t.includes(` ${p}es `));
+};
+
+/** Beef/pork cuts with visible fat, and chicken pieces with skin. */
+export const CORTES_CON_GRASA = ["bife ancho", "asado", "costillar", "vacio", "bondiola", "panceta", "chuleta"] as const;
+export const POLLO_CON_PIEL = ["pata muslo", "muslo", "alita", "pollo entero", "pollo al horno"] as const;
+/** Exclusions always win (dish name or the anchor meat row). */
+export const EXCLUSIONES_GRASA = [
+  "yogur", "yogurt", "leche", "queso", "ensalada", "guiso", "estofado", "milanesa", "pechuga", "lomo", "peceto", "nalga", "cuadril",
+  "fideo", "pasta", "arroz", "pan", "salsa", "pure", "tarta", "empanada", "pizza", "sandwich", "hamburguesa", "locro", "wok", "salteado",
+] as const;
+const PERMITIDOS = [...CORTES_CON_GRASA, ...POLLO_CON_PIEL];
+
+/**
+ * Keeps `descartable` only when the dish name or ANOTHER row names an allowed cut and no exclusion applies
+ * (the fat row never validates itself). Invalid fat rows are merged back into the main meat row.
+ * `revisar`: ids to validate (default all); other rows keep their flag untouched.
+ */
+export function filtrarDescartables(plato: string, ings: Ingrediente[], revisar?: ReadonlySet<string>): Ingrediente[] {
+  let out = [...ings];
+  for (const d of ings) {
+    if (!d.descartable || (revisar && !revisar.has(d.id))) continue;
+    const otras = out.filter((i) => i.id !== d.id && !i.descartable);
+    const anclas = otras.filter((i) => tiene(i.nombre, PERMITIDOS));
+    const platoOk = tiene(plato, PERMITIDOS);
+    const excluido = tiene(plato, EXCLUSIONES_GRASA.filter((e) => e !== "pan" && e !== "ensalada" && e !== "arroz" && e !== "pure" && e !== "salsa"))
+      || anclas.some((a) => tiene(a.nombre, EXCLUSIONES_GRASA))
+      || (anclas.length === 0 && tiene(plato, EXCLUSIONES_GRASA));
+    const valido = (anclas.length > 0 || platoOk) && !excluido;
+    if (valido) continue;
+    const carne = otras.find((i) => normalizarCategoria(i.categoria) === "Carnes");
+    if (carne) {
+      const v = vacio();
+      for (const k of NUTRIENTES) v[k] = carne[k] + d[k];
+      const unida = crearIngrediente(carne.id, carne.nombre, carne.gramos + d.gramos, v, carne.categoria);
+      out = out.filter((i) => i.id !== d.id).map((i) => (i.id === carne.id ? { ...unida, ...(carne.editado_manual ? { editado_manual: true } : {}) } : i));
+    } else {
+      out = out.map((i) => (i.id === d.id ? (({ descartable: _x, ...rest }) => rest)(i) : i));
+    }
+  }
+  return out;
+}

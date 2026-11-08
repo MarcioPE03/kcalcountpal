@@ -1,4 +1,5 @@
-import { Mic, Plus, Square, Trash2, Loader2 } from "lucide-react";
+import { Mic, Plus, Square, Loader2 } from "lucide-react";
+import { IngredienteSheet } from "@/components/kcal/ingrediente-sheet";
 import { useState, type ComponentProps } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +16,6 @@ import {
   NUTRIENTE_LABEL,
   NUTRIENTE_UNIDAD,
   crearIngrediente,
-  escalarIngrediente,
   fmt,
   vacio,
   type Ingrediente,
@@ -62,13 +62,15 @@ export function DescripcionInput({
   value,
   onChange,
   placeholder,
+  maxLength = 1000,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  maxLength?: number;
 }) {
   const { estado, iniciar, detener, activo } = useDictado((t) =>
-    onChange((value ? value.trimEnd() + " " : "") + t),
+    onChange(((value ? value.trimEnd() + " " : "") + t).slice(0, maxLength)),
   );
   return (
     <div className="relative">
@@ -77,7 +79,7 @@ export function DescripcionInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? "Ej: 200 g de pollo a la plancha, arroz, cocinado con poco aceite"}
         className="min-h-28 rounded-2xl bg-card pr-14 text-base"
-        maxLength={1000}
+        maxLength={maxLength}
       />
       <button
         type="button"
@@ -152,47 +154,36 @@ export function IngredientesEditor({
   onChange: (items: Ingrediente[]) => void;
 }) {
   const [nuevo, setNuevo] = useState(false);
+  const [editar, setEditar] = useState<Ingrediente | null>(null);
   return (
     <div className="space-y-2">
       {items.map((ing) => (
-        <div key={ing.id} className="rounded-2xl border bg-card p-3">
-          <div className="flex items-center gap-2">
-            <Input
-              value={ing.nombre}
-              onChange={(e) => onChange(items.map((i) => (i.id === ing.id ? { ...i, nombre: e.target.value } : i)))}
-              className="h-9 flex-1 border-0 bg-transparent px-0 font-medium shadow-none focus-visible:ring-0"
-            />
-            <div className="flex items-center gap-1">
-              <NumberInput
-                value={ing.gramos}
-                onChange={(g) => onChange(items.map((i) => (i.id === ing.id ? escalarIngrediente(i, g) : i)))}
-                className="h-9 w-20 text-right"
-                aria-label={`Gramos de ${ing.nombre}`}
-              />
-              <span className="text-sm text-muted-foreground">g</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onChange(items.filter((i) => i.id !== ing.id))}
-              className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-destructive"
-              aria-label={`Borrar ${ing.nombre}`}
-            >
-              <Trash2 className="size-4" />
-            </button>
+        <button
+          key={ing.id}
+          type="button"
+          onClick={() => setEditar(ing)}
+          className={cn("block w-full rounded-2xl border bg-card p-3 text-left transition-colors active:bg-muted", ing.descartable && "border-carbs bg-carbs/10")}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p className="line-clamp-2 font-medium">{ing.nombre}</p>
+            <span className="shrink-0 text-sm tabular text-muted-foreground">{ing.gramos > 0 ? `${fmt(ing.gramos)} g` : "—"}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground tabular">
-            {fmt(ing.calorias)} kcal · <span className="text-protein">P {fmt(ing.proteinas, 1)}</span> ·{" "}
-            <span className="text-carbs">C {fmt(ing.carbohidratos, 1)}</span> ·{" "}
-            <span className="text-fat">G {fmt(ing.grasas, 1)}</span>
-          </p>
-          <CategoriaSelect
-            value={ing.categoria}
-            onChange={(categoria) => onChange(items.map((i) => (i.id === ing.id ? { ...i, categoria } : i)))}
-          />
+            <p className="text-xs text-muted-foreground tabular">
+              <span className="font-semibold text-foreground">{fmt(ing.calorias)} kcal</span> · <span className="text-protein">P {fmt(ing.proteinas, 1)}</span> ·{" "}
+              <span className="text-carbs">C {fmt(ing.carbohidratos, 1)}</span> · <span className="text-fat">G {fmt(ing.grasas, 1)}</span>
+            </p>
+            <span className="text-xs text-muted-foreground">{normalizarCategoria(ing.categoria)}{ing.editado_manual ? " · editado" : ""}</span>
           </div>
-        </div>
+          {ing.descartable && <p className="mt-1.5 text-xs font-medium text-foreground">¿La comiste? Si la dejaste, eliminala.</p>}
+        </button>
       ))}
+      <IngredienteSheet
+        ing={editar}
+        onClose={() => setEditar(null)}
+        onSave={(n) => { if (n !== editar) onChange(items.map((i) => (i.id === n.id ? n : i))); }}
+        onDelete={(id) => onChange(items.filter((i) => i.id !== id))}
+      />
       {nuevo ? (
         <NuevoIngrediente
           onCancel={() => setNuevo(false)}

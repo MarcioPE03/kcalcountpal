@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { RespuestaIA, procesarRespuesta, type AnalisisRespuesta } from "./analisis";
+import { MAX_ACLARACION, MAX_INGREDIENTES_CORRECCION, RespuestaCorreccionIA, aplicarCorreccion } from "./correccion";
+import type { Ingrediente } from "./nutri";
 import { AI_GATEWAY_URL, AI_MODEL, TRANSCRIBE_MODEL } from "./ai-model";
-import { ESTADO_CATEGORIA, ESTADO_ETIQUETA_FALLIDA, LIMITE_ANALISIS_DEFECTO, LIMITE_CATEGORIAS_DEFECTO, contarCupos, limiteAlcanzado } from "./limits";
+import { ESTADO_CATEGORIA, ESTADO_CORRECCION, ESTADO_CORRECCION_EN_CURSO, ESTADO_CORRECCION_FALLIDA, ESTADO_ETIQUETA_FALLIDA, LIMITE_CORRECCIONES_DEFECTO, LIMITE_INTENTOS_CORRECCION, correccionEnCurso, LIMITE_ANALISIS_DEFECTO, LIMITE_CATEGORIAS_DEFECTO, contarCupos, limiteAlcanzado } from "./limits";
 import { normalizarCodigo, normalizarEtiqueta, type ProductoOFF } from "./off";
 import { CATEGORIAS, normalizarCategoria, sumarDias } from "./nutri";
 
@@ -25,7 +27,16 @@ Reglas:
    - Milanesa: carne (Carnes) + pan rallado (Cereales y panificados) + huevo (Lácteos y huevos) + aceite (Aceites y grasas).
    - Empanada: masa (Cereales y panificados) + relleno de carne (Carnes).
    - Dulce de leche, alfajores, facturas, medialunas: Dulces y snacks.
-   - Mate, café, gaseosa, jugo: Bebidas (el azúcar agregado: Dulces y snacks).`;
+   - Mate, café, gaseosa, jugo: Bebidas (el azúcar agregado: Dulces y snacks).
+
+11. GRASA VISIBLE / PIEL (lista cerrada; ante la duda NO separar):
+   - Separá en una fila aparte con descartable=true SOLO en:
+     (a) cortes vacunos o de cerdo con grasa visible: bife ancho, asado, costillar, vacío, bondiola, panceta, chuleta. Nombre: "Grasa visible del <corte> (descartable)", categoria "Carnes".
+     (b) pollo con piel: pata muslo, muslo, alitas, pollo entero al horno. Nombre: "Piel del pollo", categoria "Carnes".
+   - NUNCA separes grasa en lácteos, verduras, frutas, pastas, arroz, panificados, salsas, ensaladas, guisos, milanesas (incluida milanesa de pollo), cortes magros (pechuga sin piel, lomo, peceto, nalga, cuadril) ni preparaciones mixtas donde la grasa no se distingue.
+   - Solo si la grasa o la piel se ve en la foto o la descripción la menciona. Si el usuario dice que la sacó o no la comió, no la incluyas.
+   - La fila de carne magra NO incluye la grasa/piel separada (sin doble conteo); conserva su grasa intramuscular.
+   - En todas las demás filas descartable=false.`;
 
 function errorDeGateway(e: unknown): AnalisisRespuesta {
   const status =
@@ -350,5 +361,139 @@ export const leerEtiqueta = createServerFn({ method: "POST" })
       await registrar(ESTADO_ETIQUETA_FALLIDA);
       const res = errorDeGateway(e);
       return { ok: false, mensaje: res.ok ? "" : res.mensaje.replace("la comida", "el producto") };
+    }
+  });
+
+// ---------- Corregir con IA ----------
+
+const PROMPT_CORRECCION = `Sos un nutricionista argentino. Recibís la lista ACTUAL de ingredientes de una comida (cada fila con su id) y una aclaración del usuario. A veces también la foto.
+
+Reglas:
+1. La aclaración del usuario tiene prioridad absoluta.
+2. Modificá SOLO lo que la aclaración indica. Devolvé TODAS las filas recibidas, cada una con su mismo id y una accion:
+   - "sin_cambios": la fila no se toca (copiá sus valores tal cual).
+   - "modificada": cambiaste gramos, valores, nombre o categoría. Devolvé los valores nuevos completos.
+   - "eliminada": el usuario indica que no la comió o hay que quitarla.
+   - "nueva": fila agregada (usá id "nueva-1", "nueva-2", ...).
+3. Las filas con editado_manual=true NO se tocan salvo que la aclaración las mencione explícitamente.
+4. Si la aclaración dice que sacó grasa, piel o una parte y esa parte está incluida dentro de una fila (no hay fila aparte), devolvé esa fila como "modificada" con menos gramos y menos grasa/kcal. Nunca la dejes como "sin_cambios" en ese caso.
+5. Valores por fila para los gramos indicados: calorias, proteinas, carbohidratos, grasas, grasas_saturadas, fibra, azucares (g) y sodio_mg (mg). Coherentes con 4P+4C+9G. Nunca negativos.
+6. categoria de la lista cerrada: Carnes, Pescados y mariscos, Lácteos y huevos, Verduras, Frutas, Cereales y panificados, Legumbres, Frutos secos y semillas, Dulces y snacks, Bebidas, Aceites y grasas, Otros.
+7. descartable=true solo en filas de grasa visible de cortes vacunos/de cerdo (bife ancho, asado, costillar, vacío, bondiola, panceta, chuleta) o "Piel del pollo" (pata muslo, muslo, alitas, pollo entero al horno). Nunca en milanesas ni cortes magros. Conservá el valor que trae cada fila sin cambios.
+8. Si la aclaración es ambigua y no podés saber qué cambiar, devolvé todas las filas como "sin_cambios", cambios vacío y una pregunta breve en "pregunta". Si no, pregunta=null.
+9. "cambios": lista breve en español rioplatense explicando cada cambio con su efecto, ej: "Quité 40 g de grasa visible del bife: -360 kcal".`;
+
+const IngEntrada = z.object({
+  id: z.string().min(1).max(80),
+  nombre: z.string().max(160),
+  categoria: z.string().max(60).optional(),
+  gramos: z.number().min(0).max(10000),
+  calorias: z.number().min(0), proteinas: z.number().min(0), carbohidratos: z.number().min(0), grasas: z.number().min(0),
+  grasas_saturadas: z.number().min(0), fibra: z.number().min(0), azucares: z.number().min(0), sodio_mg: z.number().min(0),
+  por_gramo: z.record(z.string(), z.number()).optional(),
+  editado_manual: z.boolean().optional(),
+  descartable: z.boolean().optional(),
+});
+
+const CorregirInput = z.object({
+  ingredientes: z.array(IngEntrada).min(1).max(MAX_INGREDIENTES_CORRECCION),
+  nombre_plato: z.string().max(160),
+  aclaracion: z.string().trim().min(1).max(MAX_ACLARACION),
+  imagen: z.string().regex(/^data:image\/(jpeg|png|webp);base64,/).max(3_000_000).nullable(),
+  fecha_local: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export type CorreccionRespuesta =
+  | { ok: true; ingredientes: Ingrediente[]; cambios: string[]; pregunta: string | null; usados: number; limite: number }
+  | { ok: false; codigo: "limite" | "en_curso" | "creditos" | "rate" | "error"; mensaje: string };
+
+export const corregirComida = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => CorregirInput.parse(input))
+  .handler(async ({ data, context }): Promise<CorreccionRespuesta> => {
+    const { supabase, userId } = context;
+    const hoyUtc = new Date().toISOString().slice(0, 10);
+    const fecha = [sumarDias(hoyUtc, -1), hoyUtc, sumarDias(hoyUtc, 1)].includes(data.fecha_local) ? data.fecha_local : hoyUtc;
+    const limite = LIMITE_CORRECCIONES_DEFECTO;
+
+    const { data: filas } = await supabase.from("analisis_ia").select("estado, created_at").eq("user_id", userId).eq("fecha_local", fecha);
+    const cupos = contarCupos((filas ?? []).map((f) => f.estado));
+    if (cupos.correcciones >= limite) {
+      return { ok: false, codigo: "limite", mensaje: `Llegaste a ${limite} correcciones con IA hoy. Mañana se renueva; podés editar los ingredientes a mano.` };
+    }
+    if (cupos.intentosCorreccion >= LIMITE_INTENTOS_CORRECCION) {
+      return { ok: false, codigo: "limite", mensaje: "Hiciste demasiados intentos de corrección hoy. Mañana se renueva; podés editar los ingredientes a mano." };
+    }
+    if (correccionEnCurso(filas ?? [], Date.now())) {
+      return { ok: false, codigo: "en_curso", mensaje: "Ya hay una corrección en curso. Esperá a que termine." };
+    }
+
+    const apiKey = process.env["LOVABLE_API_KEY"];
+    if (!apiKey) return { ok: false, codigo: "error", mensaje: "La IA no está configurada." };
+
+    const registrar = (estado: string) => supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado });
+    await registrar(ESTADO_CORRECCION_EN_CURSO);
+
+    const antes = data.ingredientes.map((i) => {
+      const por_gramo = { calorias: 0, proteinas: 0, carbohidratos: 0, grasas: 0, grasas_saturadas: 0, fibra: 0, azucares: 0, sodio_mg: 0 };
+      for (const k of Object.keys(por_gramo) as (keyof typeof por_gramo)[]) {
+        const p = i.por_gramo?.[k];
+        por_gramo[k] = typeof p === "number" && Number.isFinite(p) ? p : i.gramos > 0 ? i[k] / i.gramos : 0;
+      }
+      return { ...i, por_gramo } as Ingrediente;
+    });
+
+    try {
+      const { createOpenAI } = await import("@ai-sdk/openai");
+      const { streamText, Output } = await import("ai");
+      const provider = createOpenAI({
+        baseURL: AI_GATEWAY_URL,
+        apiKey,
+        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+      });
+      const lista = antes.map(({ id, nombre, categoria, gramos, calorias, proteinas, carbohidratos, grasas, grasas_saturadas, fibra, azucares, sodio_mg, editado_manual, descartable }) => ({
+        id, nombre, categoria: categoria ?? "Otros", gramos, calorias, proteinas, carbohidratos, grasas, grasas_saturadas, fibra, azucares, sodio_mg,
+        editado_manual: !!editado_manual, descartable: !!descartable,
+      }));
+      const content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }> = [
+        { type: "text", text: `Plato: ${data.nombre_plato || "Comida"}\nIngredientes actuales (JSON):\n${JSON.stringify(lista)}\n\nAclaración del usuario (tiene prioridad): ${data.aclaracion}` },
+      ];
+      if (data.imagen) content.push({ type: "image", image: new URL(data.imagen) });
+
+      const result = streamText({
+        model: provider.responses(AI_MODEL),
+        instructions: PROMPT_CORRECCION,
+        messages: [{ role: "user", content }],
+        output: Output.object({ schema: RespuestaCorreccionIA }),
+        maxRetries: 0,
+        providerOptions: {
+          openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] },
+        },
+      });
+
+      let parsed;
+      try {
+        parsed = RespuestaCorreccionIA.parse(await result.output);
+      } catch (e) {
+        if ((e as { statusCode?: number })?.statusCode) throw e;
+        console.error("Corrección: respuesta ilegible", e);
+        await registrar(ESTADO_CORRECCION_FALLIDA);
+        return { ok: false, codigo: "error", mensaje: "La IA devolvió una respuesta que no pudimos leer. Reintentá." };
+      }
+
+      let n = 0;
+      const r = aplicarCorreccion(antes, parsed, data.aclaracion, data.nombre_plato, () => `c-${Date.now().toString(36)}-${++n}`);
+      if (r.pregunta) {
+        await registrar(ESTADO_CORRECCION_FALLIDA);
+        return { ok: true, ingredientes: antes, cambios: [], pregunta: r.pregunta, usados: cupos.correcciones, limite };
+      }
+      await registrar(ESTADO_CORRECCION);
+      return { ok: true, ingredientes: r.ingredientes, cambios: r.cambios, pregunta: null, usados: cupos.correcciones + 1, limite };
+    } catch (e) {
+      await registrar(ESTADO_CORRECCION_FALLIDA);
+      const err = errorDeGateway(e);
+      if (err.ok) return { ok: false, codigo: "error", mensaje: "No pudimos corregir. Reintentá." };
+      const codigo = err.codigo === "creditos" || err.codigo === "rate" ? err.codigo : "error";
+      return { ok: false, codigo, mensaje: codigo === "error" ? "No pudimos corregir la comida. Reintentá." : err.mensaje };
     }
   });
