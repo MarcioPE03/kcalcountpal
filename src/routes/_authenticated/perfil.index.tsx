@@ -154,7 +154,7 @@ function Perfil() {
 }
 
 function ResumenMacros({ metas }: { metas: Metas | undefined }) {
-  if (!metas) return <Card className="h-36 animate-pulse" />;
+  if (!metas) return <Card className="h-36 animate-pulse">{null}</Card>;
   const kcal = Number(metas.calorias);
   const { pct } = pctDeMetas(metas);
   const g = gramosDesdePct(kcal, pct);

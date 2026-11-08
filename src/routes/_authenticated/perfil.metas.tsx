@@ -227,7 +227,7 @@ function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; in
                   max={PCT_MAX}
                   step={1}
                   onPointerDown={() => { snapshot.current = pct; }}
-                  onValueChange={([v]) => moverSlider(k, v)}
+                  onValueChange={([v]) => moverSlider(k, v ?? pct[k])}
                   onValueCommit={() => { snapshot.current = null; }}
                   className={cn("flex-1", SLIDER_CLASS[k])}
                   aria-label={MACRO_LABEL[k]}
