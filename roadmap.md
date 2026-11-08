@@ -36,3 +36,8 @@
 ## Orden de comidas y entrenamientos
 - [x] Lista de Hoy ordenada por momento, nombres en dos líneas
 - [x] Menú "Agregar" y pantalla de entrenamientos (Recientes, Favoritos, Nuevo)
+
+## Revisión: editor, grasa visible y corrección IA
+- [ ] Editor por ingrediente (revisión y detalle)
+- [ ] Grasa visible / piel con lista cerrada y exclusiones
+- [ ] Corregir con IA con cupo propio y deshacer
