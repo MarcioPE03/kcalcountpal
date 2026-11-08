@@ -62,7 +62,7 @@ function Dia() {
           </div>
         </Card>
       ) : null}
-      <EntrenamientoDialog open={!!editar} onOpenChange={(o) => !o && setEditar(null)} fecha={fecha} entrenamiento={editar} />
+      <EntrenamientoDialog onOpenChange={(o) => !o && setEditar(null)} entrenamiento={editar} />
       <p className="mt-4 px-1 text-xs text-muted-foreground">Podés fijar metas de fibra, azúcares, saturadas y sodio en tu perfil.</p>
     </Page>
   );
