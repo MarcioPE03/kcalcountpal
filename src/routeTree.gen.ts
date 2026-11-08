@@ -18,6 +18,7 @@ import { Route as AuthenticatedProgresoRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAgregarIndexRouteImport } from './routes/_authenticated/agregar.index'
 import { Route as AuthenticatedAgregarCodigoRouteImport } from './routes/_authenticated/agregar.codigo'
 import { Route as AuthenticatedAgregarDescribirRouteImport } from './routes/_authenticated/agregar.describir'
+import { Route as AuthenticatedAgregarEntrenamientoRouteImport } from './routes/_authenticated/agregar.entrenamiento'
 import { Route as AuthenticatedAgregarFotoRouteImport } from './routes/_authenticated/agregar.foto'
 import { Route as AuthenticatedAgregarManualRouteImport } from './routes/_authenticated/agregar.manual'
 import { Route as AuthenticatedAgregarMisComidasRouteImport } from './routes/_authenticated/agregar.mis-comidas'
@@ -72,6 +73,12 @@ const AuthenticatedAgregarDescribirRoute =
     path: '/agregar/describir',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAgregarEntrenamientoRoute =
+  AuthenticatedAgregarEntrenamientoRouteImport.update({
+    id: '/agregar/entrenamiento',
+    path: '/agregar/entrenamiento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAgregarFotoRoute =
   AuthenticatedAgregarFotoRouteImport.update({
     id: '/agregar/foto',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/progreso': typeof AuthenticatedProgresoRoute
   '/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
+  '/agregar/entrenamiento': typeof AuthenticatedAgregarEntrenamientoRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
   '/agregar/mis-comidas': typeof AuthenticatedAgregarMisComidasRoute
@@ -131,6 +139,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
+  '/agregar/entrenamiento': typeof AuthenticatedAgregarEntrenamientoRoute
   '/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/agregar/manual': typeof AuthenticatedAgregarManualRoute
   '/agregar/mis-comidas': typeof AuthenticatedAgregarMisComidasRoute
@@ -149,6 +158,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/_authenticated/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
+  '/_authenticated/agregar/entrenamiento': typeof AuthenticatedAgregarEntrenamientoRoute
   '/_authenticated/agregar/foto': typeof AuthenticatedAgregarFotoRoute
   '/_authenticated/agregar/manual': typeof AuthenticatedAgregarManualRoute
   '/_authenticated/agregar/mis-comidas': typeof AuthenticatedAgregarMisComidasRoute
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/progreso'
     | '/agregar/codigo'
     | '/agregar/describir'
+    | '/agregar/entrenamiento'
     | '/agregar/foto'
     | '/agregar/manual'
     | '/agregar/mis-comidas'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agregar/codigo'
     | '/agregar/describir'
+    | '/agregar/entrenamiento'
     | '/agregar/foto'
     | '/agregar/manual'
     | '/agregar/mis-comidas'
@@ -200,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/agregar/codigo'
     | '/_authenticated/agregar/describir'
+    | '/_authenticated/agregar/entrenamiento'
     | '/_authenticated/agregar/foto'
     | '/_authenticated/agregar/manual'
     | '/_authenticated/agregar/mis-comidas'
@@ -279,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgregarDescribirRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agregar/entrenamiento': {
+      id: '/_authenticated/agregar/entrenamiento'
+      path: '/agregar/entrenamiento'
+      fullPath: '/agregar/entrenamiento'
+      preLoaderRoute: typeof AuthenticatedAgregarEntrenamientoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agregar/foto': {
       id: '/_authenticated/agregar/foto'
       path: '/agregar/foto'
@@ -331,6 +351,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAgregarCodigoRoute: typeof AuthenticatedAgregarCodigoRoute
   AuthenticatedAgregarDescribirRoute: typeof AuthenticatedAgregarDescribirRoute
+  AuthenticatedAgregarEntrenamientoRoute: typeof AuthenticatedAgregarEntrenamientoRoute
   AuthenticatedAgregarFotoRoute: typeof AuthenticatedAgregarFotoRoute
   AuthenticatedAgregarManualRoute: typeof AuthenticatedAgregarManualRoute
   AuthenticatedAgregarMisComidasRoute: typeof AuthenticatedAgregarMisComidasRoute
@@ -347,6 +368,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAgregarCodigoRoute: AuthenticatedAgregarCodigoRoute,
   AuthenticatedAgregarDescribirRoute: AuthenticatedAgregarDescribirRoute,
+  AuthenticatedAgregarEntrenamientoRoute:
+    AuthenticatedAgregarEntrenamientoRoute,
   AuthenticatedAgregarFotoRoute: AuthenticatedAgregarFotoRoute,
   AuthenticatedAgregarManualRoute: AuthenticatedAgregarManualRoute,
   AuthenticatedAgregarMisComidasRoute: AuthenticatedAgregarMisComidasRoute,
