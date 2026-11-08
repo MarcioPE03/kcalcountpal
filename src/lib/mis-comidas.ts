@@ -21,7 +21,7 @@ type Num = number | string;
 
 export type ItemComida = { nombre: string; ingredientes: unknown; categoria?: string | null; kcal_min?: Num | null; kcal_max?: Num | null; confianza?: string | null } & Record<Col, Num>;
 
-const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+export const normTexto = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
 /** Same normalized name + same rounded kcal = same meal. */
 export function claveComida(nombre: string, kcal: Num): string {
