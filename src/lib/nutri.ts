@@ -55,6 +55,15 @@ export const MOMENTOS: { key: Momento; label: string }[] = [
   { key: "snack", label: "Snacks" },
 ];
 
+/** Single list order: by moment (unknown/null last), then created_at ascending. */
+export function ordenarComidas<T extends { momento: string | null; created_at: string }>(comidas: readonly T[]): T[] {
+  const idx = (m: string | null) => {
+    const i = MOMENTOS.findIndex((x) => x.key === m);
+    return i === -1 ? MOMENTOS.length : i;
+  };
+  return [...comidas].sort((a, b) => idx(a.momento) - idx(b.momento) || a.created_at.localeCompare(b.created_at));
+}
+
 export type Ingrediente = Nutrientes & {
   id: string;
   nombre: string;
