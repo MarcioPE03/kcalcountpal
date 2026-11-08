@@ -25,12 +25,12 @@ export const normTexto = (s: string) => s.normalize("NFD").replace(/[\u0300-\u03
 
 /** Same normalized name + same rounded kcal = same meal. */
 export function claveComida(nombre: string, kcal: Num): string {
-  return `${norm(nombre)}|${Math.round(Number(kcal) || 0)}`;
+  return `${normTexto(nombre)}|${Math.round(Number(kcal) || 0)}`;
 }
 
 export function coincideBusqueda(nombre: string, q: string): boolean {
-  const k = norm(q);
-  return !k || norm(nombre).includes(k);
+  const k = normTexto(q);
+  return !k || normTexto(nombre).includes(k);
 }
 
 /** Newest first by `fecha`, then `created_at`; keeps only the first of each key. */
