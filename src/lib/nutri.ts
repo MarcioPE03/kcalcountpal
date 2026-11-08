@@ -583,25 +583,26 @@ export function normalizarPct(raw: PctMacros): PctMacros {
   const w = MACRO_KEYS.map((k) => Math.max(0, Number(raw[k]) || 0));
   const suma = w.reduce((s, x) => s + x, 0);
   const exactas = suma > 0 ? w.map((x) => (x * 1000) / suma) : [1000 / 3, 1000 / 3, 1000 / 3];
-  const t = exactas.map(Math.floor);
+  const t = exactas.map(Math.floor) as number[];
+  const at = (i: number) => t[i] ?? 0;
   let resto = 1000 - t.reduce((s, x) => s + x, 0);
   const orden = exactas.map((x, i) => [x - Math.floor(x), i] as const).sort((a, b) => b[0] - a[0]);
-  for (let j = 0; resto > 0; j++, resto--) t[orden[j % 3][1]] += 1;
+  for (let j = 0; resto > 0; j++, resto--) { const i = orden[j % 3]![1]; t[i] = at(i) + 1; }
   for (let iter = 0; iter < 6; iter++) {
     let diff = 0;
     for (let i = 0; i < 3; i++) {
-      if (t[i] < T_MIN) { diff -= T_MIN - t[i]; t[i] = T_MIN; }
-      if (t[i] > T_MAX) { diff += t[i] - T_MAX; t[i] = T_MAX; }
+      if (at(i) < T_MIN) { diff -= T_MIN - at(i); t[i] = T_MIN; }
+      if (at(i) > T_MAX) { diff += at(i) - T_MAX; t[i] = T_MAX; }
     }
     if (diff === 0) break;
     for (let i = 0; i < 3 && diff !== 0; i++) {
-      const espacio = diff > 0 ? T_MAX - t[i] : t[i] - T_MIN;
+      const espacio = diff > 0 ? T_MAX - at(i) : at(i) - T_MIN;
       const mover = Math.min(espacio, Math.abs(diff));
-      t[i] += diff > 0 ? mover : -mover;
+      t[i] = at(i) + (diff > 0 ? mover : -mover);
       diff += diff > 0 ? -mover : mover;
     }
   }
-  return { proteinas: t[0] / 10, carbohidratos: t[1] / 10, grasas: t[2] / 10 };
+  return { proteinas: at(0) / 10, carbohidratos: at(1) / 10, grasas: at(2) / 10 };
 }
 
 /** Percentages derived from gram goals (for goals saved before percentages existed). */
