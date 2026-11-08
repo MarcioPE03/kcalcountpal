@@ -410,6 +410,6 @@ export async function guardarOtrosLimites(v: Parameters<typeof import("./nutri")
 }
 
 export function invalidarMetas(qc: import("@tanstack/react-query").QueryClient) {
-  for (const k of ["metas", "comidas", "entrenamientos", "pesos", "perfil"]) qc.invalidateQueries({ queryKey: [k] });
-  qc.invalidateQueries();
+  // Goals feed Hoy, day detail and Progreso: refresh everything.
+  return qc.invalidateQueries();
 }

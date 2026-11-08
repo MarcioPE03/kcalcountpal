@@ -8,8 +8,8 @@ import { NumberInput } from "@/components/kcal/editors";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { guardarPeso, perfilQuery, uid, ultimoPeso } from "@/lib/data";
-import { PESO_MIN, fechaLocal, fmt, metasSugeridas, type DatosPerfil } from "@/lib/nutri";
+import { guardarMetasMacros, guardarPeso, perfilQuery, uid, ultimoPeso } from "@/lib/data";
+import { PESO_MIN, fechaLocal, fmt, metasSugeridasFila, type DatosPerfil } from "@/lib/nutri";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -59,7 +59,7 @@ function Onboarding() {
   }, [perfil.data]);
 
   const valido = d.peso_kg >= PESO_MIN && d.peso_kg <= 300 && d.altura_cm >= 120 && d.altura_cm <= 230 && d.edad >= 14 && d.edad <= 100;
-  const s = valido ? metasSugeridas(d) : null;
+  const s = valido ? metasSugeridasFila(d) : null;
 
   async function terminar(usar: boolean) {
     setGuardando(true);
@@ -73,7 +73,7 @@ function Onboarding() {
       if (usar) await guardarPeso(fechaLocal(), peso_kg);
       qc.invalidateQueries({ queryKey: ["pesos"] });
       if (usar && s) {
-        await guardarMetasMacros(s.calorias, pctDesdeGramos(s));
+        await guardarMetasMacros(s.calorias, { proteinas: s.pct_proteinas, carbohidratos: s.pct_carbohidratos, grasas: s.pct_grasas });
       }
       qc.invalidateQueries({ queryKey: ["perfil"] });
       qc.invalidateQueries({ queryKey: ["metas"] });
