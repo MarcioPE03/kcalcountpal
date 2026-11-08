@@ -64,6 +64,13 @@
       "when": 1794171647275,
       "tag": "0008_favoritos_entrenamientos",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794174957747,
+      "tag": "0009_metas_porcentajes",
+      "breakpoints": true
     }
   ]
 }
