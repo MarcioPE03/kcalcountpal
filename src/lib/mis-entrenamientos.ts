@@ -30,11 +30,14 @@ export type EntEscalado = { calorias_quemadas: number; duracion_min: number | nu
 
 /** Rounds to integers; never clamps — out-of-range results carry an error. */
 export function escalarEntrenamiento(e: ItemEnt, factor: number): EntEscalado {
-  const kcal = Math.round(Number(e.calorias_quemadas) * factor);
-  const dur = e.duracion_min == null ? null : Math.round(e.duracion_min * factor);
+  const rawK = Number(e.calorias_quemadas) * factor;
+  const rawD = e.duracion_min == null ? null : e.duracion_min * factor;
+  const kcal = Math.round(rawK);
+  const dur = rawD == null ? null : Math.round(rawD);
   let error: string | null = null;
-  if (!Number.isFinite(kcal) || kcal < QUEMADAS_MIN || kcal > QUEMADAS_MAX) error = "Las kcal quedan fuera de 1–5000";
-  else if (dur != null && dur < 1) error = "La duración queda en menos de 1 min";
+  // Range is checked on the unrounded value so rounding never turns 0,5 kcal into a valid 1.
+  if (!Number.isFinite(rawK) || rawK < QUEMADAS_MIN || rawK > QUEMADAS_MAX) error = "Las kcal quedan fuera de 1–5000";
+  else if (rawD != null && rawD < 1) error = "La duración queda en menos de 1 min";
   return { calorias_quemadas: kcal, duracion_min: dur, error };
 }
 

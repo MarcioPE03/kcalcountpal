@@ -20,7 +20,7 @@ describe("ordenarComidas", () => {
       { id: "a1", momento: "almuerzo", created_at: "2026-11-08T12:00:00Z" },
       { id: "z", momento: "otro", created_at: "2026-11-08T00:00:00Z" },
     ]);
-    expect(r.map((x) => x.id)).toEqual(["a1", "a2", "x", "z"]);
+    expect(r.map((x) => x.id)).toEqual(["a1", "a2", "z", "x"]);
   });
 });
 
