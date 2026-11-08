@@ -203,6 +203,39 @@ export type Database = {
         }
         Relationships: []
       }
+      favoritos_entrenamientos: {
+        Row: {
+          calorias_quemadas: number
+          clave: string
+          created_at: string
+          duracion_min: number | null
+          id: string
+          nombre: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calorias_quemadas: number
+          clave: string
+          created_at?: string
+          duracion_min?: number | null
+          id?: string
+          nombre: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          calorias_quemadas?: number
+          clave?: string
+          created_at?: string
+          duracion_min?: number | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       metas_diarias: {
         Row: {
           azucares_g: number | null
