@@ -43,5 +43,5 @@ export function MacroRing({ pct, size = 64, stroke = 8, gap = 2, children, class
   );
 }
 
-export const MACRO_LABEL: Record<string, string> = { proteinas: "Proteínas", carbohidratos: "Carbohidratos", grasas: "Grasas" };
+export const MACRO_LABEL: Record<"proteinas" | "carbohidratos" | "grasas", string> = { proteinas: "Proteínas", carbohidratos: "Carbohidratos", grasas: "Grasas" };
 export const MACRO_BG: Record<string, string> = { proteinas: "bg-protein", carbohidratos: "bg-carbs", grasas: "bg-fat" };
