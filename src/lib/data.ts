@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { NUTRIENTES, sumar, type Ingrediente, type Nutrientes } from "./nutri";
 import { dedupRecientes, favoritoDesde, type FilaNueva, type ItemComida } from "./mis-comidas";
+import { dedupRecientesEntrenamientos, favoritoEntrenamientoDesde, type ItemEnt } from "./mis-entrenamientos";
 
 export type Comida = Tables<"comidas">;
 export type Metas = Tables<"metas_diarias">;
@@ -294,6 +295,56 @@ export async function guardarEntrenamiento(e: NuevoEntrenamiento) {
 export async function actualizarEntrenamiento(id: string, e: NuevoEntrenamiento) {
   const { error } = await supabase.from("entrenamientos").update({ ...e, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) throw error;
+}
+
+export const entrenamientosRecientesQuery = () =>
+  queryOptions({
+    queryKey: ["entrenamientos", "recientes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("entrenamientos").select("*")
+        .order("fecha", { ascending: false }).order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      return dedupRecientesEntrenamientos(data.map((e) => ({ ...e, calorias_quemadas: Number(e.calorias_quemadas) })));
+    },
+  });
+
+export type FavoritoEntrenamiento = Tables<"favoritos_entrenamientos">;
+
+export const favoritosEntrenamientosQuery = () =>
+  queryOptions({
+    queryKey: ["favoritos-entrenamientos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("favoritos_entrenamientos").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data.map((f) => ({ ...f, calorias_quemadas: Number(f.calorias_quemadas) }));
+    },
+  });
+
+/** Upsert by (user, key): never duplicates. */
+export async function guardarFavoritoEntrenamiento(e: ItemEnt) {
+  const user_id = await uid();
+  const { error } = await supabase.from("favoritos_entrenamientos")
+    .upsert({ ...favoritoEntrenamientoDesde(e), user_id }, { onConflict: "user_id,clave" });
+  if (error) throw error;
+}
+
+export async function quitarFavoritoEntrenamiento(clave: string) {
+  const { error } = await supabase.from("favoritos_entrenamientos").delete().eq("clave", clave);
+  if (error) throw error;
+}
+
+export async function renombrarFavoritoEntrenamiento(id: string, nombre: string) {
+  const n = nombre.trim();
+  if (!n) throw new Error("Nombre vacío");
+  const { error } = await supabase.from("favoritos_entrenamientos").update({ nombre: n }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function guardarVariosEntrenamientos(filas: NuevoEntrenamiento[]) {
+  const user_id = await uid();
+  const { error } = await supabase.from("entrenamientos").insert(filas.map((f) => ({ ...f, user_id })));
+  if (error) throw error;
+  return filas.length;
 }
 
 export async function borrarEntrenamiento(id: string) {

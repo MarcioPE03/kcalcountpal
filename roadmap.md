@@ -32,3 +32,7 @@
 - [x] Foto de etiqueta con IA (cupo solo si sale bien)
 - [x] Datos parciales en ámbar, guardar con datos incompletos
 - [x] Lector más sensible, diagnóstico, cámara liberada
+
+## Orden de comidas y entrenamientos
+- [x] Lista de Hoy ordenada por momento, nombres en dos líneas
+- [x] Menú "Agregar" y pantalla de entrenamientos (Recientes, Favoritos, Nuevo)

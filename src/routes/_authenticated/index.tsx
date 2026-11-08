@@ -10,7 +10,7 @@ import { Flame, Utensils } from "lucide-react";
 import { MealRow } from "@/components/kcal/meal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { comidasDiaQuery, entrenamientosDiaQuery, metasQuery, perfilQuery, totalDia, totalQuemadas } from "@/lib/data";
-import { balanceDia, fechaLocal, fmt, fmtFechaCorta, sumarDias, tituloLista } from "@/lib/nutri";
+import { balanceDia, fechaLocal, ordenarComidas, fmt, fmtFechaCorta, sumarDias, tituloLista } from "@/lib/nutri";
 import { useFechaSeleccionada } from "@/lib/stores";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -116,7 +116,7 @@ function Hoy() {
           <Skeleton className="mt-2 h-10 w-full rounded-xl" />
         ) : comidas.data?.length ? (
           <div className="mt-1 divide-y divide-border/60">
-            {comidas.data.map((c) => <MealRow key={c.id} c={c} />)}
+            {ordenarComidas(comidas.data).map((c) => <MealRow key={c.id} c={c} />)}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-6 text-center">
@@ -140,7 +140,7 @@ function Hoy() {
           </div>
         </Card>
       ) : null}
-      <EntrenamientoDialog open={!!editar} onOpenChange={(o) => !o && setEditar(null)} fecha={fecha} entrenamiento={editar} />
+      <EntrenamientoDialog onOpenChange={(o) => !o && setEditar(null)} entrenamiento={editar} />
       <FabAgregar />
     </Page>
     </>

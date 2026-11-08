@@ -1,10 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Camera, Flame, Heart, MessageSquareText, ScanBarcode } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { Page, PageHeader } from "@/components/kcal/layout";
 import { MomentoPicker } from "@/components/kcal/editors";
-import { EntrenamientoDialog } from "@/components/kcal/entrenamientos";
 import { fechaLocal, fmtFechaCorta, horaLocal, momentoPorHora, type Momento } from "@/lib/nutri";
 import { useFechaSeleccionada } from "@/lib/stores";
 
@@ -14,9 +13,9 @@ export const Route = createFileRoute("/_authenticated/agregar/")({
   validateSearch: search,
   head: () => ({
     meta: [
-      { title: "Agregar comida — KcalCountPal" },
+      { title: "Agregar — KcalCountPal" },
       { name: "description", content: "Registrá una comida con foto, voz, código de barras o tus comidas guardadas, o un entrenamiento." },
-      { property: "og:title", content: "Agregar comida — KcalCountPal" },
+      { property: "og:title", content: "Agregar — KcalCountPal" },
       { property: "og:description", content: "Registrá una comida con foto, voz, código de barras o tus comidas guardadas, o un entrenamiento." },
     ],
   }),
@@ -27,8 +26,6 @@ function Agregar() {
   const { momento: mInicial } = Route.useSearch();
   const [fecha] = useFechaSeleccionada();
   const [momento, setMomento] = useState<Momento>(mInicial ?? momentoPorHora(horaLocal()));
-  const navigate = useNavigate();
-  const [entOpen, setEntOpen] = useState(false);
 
   const opciones = [
     { to: "/agregar/foto", icon: Camera, titulo: "Foto con IA", desc: "Sacá o subí una foto del plato", destacado: true },
@@ -39,9 +36,9 @@ function Agregar() {
 
   return (
     <Page>
-      <PageHeader title="Agregar comida" />
-      <p className="-mt-3 mb-4 text-sm text-muted-foreground capitalize">
-        {fecha === fechaLocal() ? "Hoy" : fmtFechaCorta(fecha)}
+      <PageHeader title="Agregar" />
+      <p className="-mt-3 mb-4 text-sm text-muted-foreground">
+        ¿Qué querés registrar? · <span className="capitalize">{fecha === fechaLocal() ? "Hoy" : fmtFechaCorta(fecha)}</span>
       </p>
       <div className="mb-5">
         <MomentoPicker value={momento} onChange={setMomento} />
@@ -67,22 +64,20 @@ function Agregar() {
             </div>
           </Link>
         ))}
+        <Link
+          to="/agregar/entrenamiento"
+          search={{ fecha }}
+          className="flex items-center gap-4 rounded-3xl bg-card p-5 shadow-soft transition-transform active:scale-[0.98]"
+        >
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+            <Flame className="size-6" />
+          </span>
+          <div>
+            <p className="font-display text-lg font-bold">Entrenamiento</p>
+            <p className="text-sm text-muted-foreground">Recientes, favoritos o uno nuevo</p>
+          </div>
+        </Link>
       </div>
-
-      <button
-        onClick={() => setEntOpen(true)}
-        className="mt-3 flex w-full items-center gap-4 rounded-3xl bg-card p-5 text-left shadow-soft transition-transform active:scale-[0.98]"
-      >
-        <span className="flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-          <Flame className="size-6" />
-        </span>
-        <div>
-          <p className="font-display text-lg font-bold">Entrenamiento</p>
-          <p className="text-sm text-muted-foreground">Sumá las calorías que quemaste</p>
-        </div>
-      </button>
-      <EntrenamientoDialog open={entOpen} onOpenChange={setEntOpen} fecha={fecha} onGuardado={() => navigate({ to: "/" })} />
-
     </Page>
   );
 }

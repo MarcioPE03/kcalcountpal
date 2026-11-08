@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Flame, Loader2, Plus, Trash2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Flame, Heart, Loader2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { NumberInput } from "@/components/kcal/editors";
@@ -15,12 +16,14 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  actualizarEntrenamiento, borrarEntrenamiento, entrenamientosDiaQuery, guardarEntrenamiento, type Entrenamiento,
+  actualizarEntrenamiento, borrarEntrenamiento, entrenamientosDiaQuery, favoritosEntrenamientosQuery, guardarFavoritoEntrenamiento,
+  quitarFavoritoEntrenamiento, type Entrenamiento,
 } from "@/lib/data";
+import { claveEntrenamiento } from "@/lib/mis-entrenamientos";
 import { fmt, fmtFechaCorta, validarQuemadas } from "@/lib/nutri";
 import { cn } from "@/lib/utils";
 
-const SUGERENCIAS = ["Pesas", "Caminata", "Correr", "Bicicleta", "Fútbol", "Otro"];
+export const SUGERENCIAS = ["Pesas", "Caminata", "Correr", "Bicicleta", "Fútbol", "Otro"];
 
 type Ent = Omit<Entrenamiento, "calorias_quemadas"> & { calorias_quemadas: number };
 
@@ -41,19 +44,36 @@ export function WorkoutRow({ e, onClick }: { e: Ent; onClick: () => void }) {
   );
 }
 
-export function EntrenamientoDialog({ open, onOpenChange, fecha, entrenamiento, onGuardado }: {
-  open: boolean;
+/** Edits an existing workout (new ones are added in /agregar/entrenamiento). */
+export function EntrenamientoDialog({ onOpenChange, entrenamiento }: {
   onOpenChange: (o: boolean) => void;
-  fecha: string;
-  entrenamiento?: Ent | null;
-  onGuardado?: () => void;
+  entrenamiento: Ent | null;
 }) {
+  const open = !!entrenamiento;
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [kcal, setKcal] = useState(0);
   const [dur, setDur] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const favs = useQuery({ ...favoritosEntrenamientosQuery(), enabled: open });
+  const claveActual = claveEntrenamiento(nombre, kcal, dur > 0 ? dur : null);
+  const esFav = !!favs.data?.some((f) => f.clave === claveActual);
+  const [favPend, setFavPend] = useState(false);
+
+  async function toggleFav() {
+    if (!nombre.trim() || validarQuemadas(kcal || null)) { toast.error("Completá nombre y kcal válidas para guardarlo como favorito."); return; }
+    setFavPend(true);
+    try {
+      if (esFav) await quitarFavoritoEntrenamiento(claveActual);
+      else await guardarFavoritoEntrenamiento({ nombre, calorias_quemadas: kcal, duracion_min: dur > 0 ? dur : null });
+      await qc.invalidateQueries({ queryKey: ["favoritos-entrenamientos"] });
+    } catch {
+      toast.warning("No se pudo actualizar el favorito.");
+    } finally {
+      setFavPend(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -68,15 +88,14 @@ export function EntrenamientoDialog({ open, onOpenChange, fecha, entrenamiento, 
     if (!nombre.trim()) { toast.error("Poné un nombre al entrenamiento."); return; }
     const err = validarQuemadas(kcal || null);
     if (err) { toast.error(err); return; }
-    const datos = { fecha: entrenamiento?.fecha ?? fecha, nombre: nombre.trim(), calorias_quemadas: Math.round(kcal), duracion_min: dur > 0 ? Math.round(dur) : null };
+    if (!entrenamiento) return;
+    const datos = { fecha: entrenamiento.fecha, nombre: nombre.trim(), calorias_quemadas: Math.round(kcal), duracion_min: dur > 0 ? Math.round(dur) : null };
     setGuardando(true);
     try {
-      if (entrenamiento) await actualizarEntrenamiento(entrenamiento.id, datos);
-      else await guardarEntrenamiento(datos);
+      await actualizarEntrenamiento(entrenamiento.id, datos);
       await refrescar();
-      toast.success(entrenamiento ? "Entrenamiento actualizado" : "Entrenamiento agregado");
+      toast.success("Entrenamiento actualizado");
       onOpenChange(false);
-      onGuardado?.();
     } catch {
       toast.error("No se pudo guardar el entrenamiento.");
     } finally {
@@ -102,8 +121,13 @@ export function EntrenamientoDialog({ open, onOpenChange, fecha, entrenamiento, 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-sm rounded-3xl">
           <DialogHeader>
-            <DialogTitle>{entrenamiento ? "Editar entrenamiento" : "Agregar entrenamiento"}</DialogTitle>
-            <p className="text-sm capitalize text-muted-foreground">{fmtFechaCorta(entrenamiento?.fecha ?? fecha)}</p>
+            <div className="flex items-center justify-between gap-2 pr-6">
+              <DialogTitle>Editar entrenamiento</DialogTitle>
+              <button aria-label={esFav ? "Quitar de favoritos" : "Agregar a favoritos"} disabled={favPend} onClick={toggleFav} className="rounded-full p-1.5 text-primary">
+                <Heart className={cn("size-5", esFav && "fill-current")} />
+              </button>
+            </div>
+            {entrenamiento && <p className="text-sm capitalize text-muted-foreground">{fmtFechaCorta(entrenamiento.fecha)}</p>}
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -135,11 +159,9 @@ export function EntrenamientoDialog({ open, onOpenChange, fecha, entrenamiento, 
             <Button className="w-full rounded-full" onClick={guardar} disabled={guardando}>
               {guardando && <Loader2 className="size-4 animate-spin" />} Guardar
             </Button>
-            {entrenamiento && (
-              <Button variant="ghost" className="w-full rounded-full text-destructive" onClick={() => setConfirmar(true)}>
-                <Trash2 className="size-4" /> Borrar
-              </Button>
-            )}
+            <Button variant="ghost" className="w-full rounded-full text-destructive" onClick={() => setConfirmar(true)}>
+              <Trash2 className="size-4" /> Borrar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -162,11 +184,13 @@ export function EntrenamientoDialog({ open, onOpenChange, fecha, entrenamiento, 
 /** List of the day's workouts (opened from "Quemadas"): drawer on mobile, popover on desktop. */
 export function EntrenamientosSheet({ fecha, children }: { fecha: string; children: ReactNode }) {
   const mobile = useIsMobile();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [dialogo, setDialogo] = useState<{ e: Ent | null } | null>(null);
+  const [editar, setEditar] = useState<Ent | null>(null);
   const lista = useQuery(entrenamientosDiaQuery(fecha));
 
-  const abrir = (e: Ent | null) => { setOpen(false); setDialogo({ e }); };
+  const abrir = (e: Ent) => { setOpen(false); setEditar(e); };
+  const agregar = () => { setOpen(false); navigate({ to: "/agregar/entrenamiento", search: { fecha } }); };
 
   const contenido = (
     <div className="px-4 pb-6">
@@ -177,7 +201,7 @@ export function EntrenamientosSheet({ fecha, children }: { fecha: string; childr
       ) : (
         <p className="py-4 text-center text-sm text-muted-foreground">No registraste entrenamientos este día.</p>
       )}
-      <Button className="mt-3 w-full rounded-full" onClick={() => abrir(null)}>
+      <Button className="mt-3 w-full rounded-full" onClick={agregar}>
         <Plus className="size-4" /> Agregar entrenamiento
       </Button>
     </div>
@@ -202,7 +226,7 @@ export function EntrenamientosSheet({ fecha, children }: { fecha: string; childr
           </PopoverContent>
         </Popover>
       )}
-      <EntrenamientoDialog open={!!dialogo} onOpenChange={(o) => !o && setDialogo(null)} fecha={fecha} entrenamiento={dialogo?.e ?? null} />
+      <EntrenamientoDialog onOpenChange={(o) => !o && setEditar(null)} entrenamiento={editar} />
     </>
   );
 }

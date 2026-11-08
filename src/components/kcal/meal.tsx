@@ -17,9 +17,9 @@ export function MealRow({ c }: { c: Comida }) {
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className="truncate font-medium">{c.nombre}</p>
-          <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-foreground">
+        <div className="flex items-start gap-1.5">
+          <p className="line-clamp-2 font-medium">{c.nombre}</p>
+          <span className="shrink-0 mt-0.5 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-foreground">
             {c.momento === "snack" ? "Snack" : (MOMENTOS.find((m) => m.key === c.momento)?.label ?? c.momento)}
           </span>
         </div>
