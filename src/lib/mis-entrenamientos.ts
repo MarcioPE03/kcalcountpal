@@ -63,7 +63,7 @@ export function favoritoEntrenamientoDesde(e: ItemEnt) {
 /** ?fecha= must be YYYY-MM-DD, a real date and not in the future (Buenos Aires); else today. */
 export function fechaValidaOHoy(v: string | undefined, hoy: string = fechaLocal()): string {
   if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return hoy;
-  const [y, m, d] = v.split("-").map(Number);
+  const [y = 0, m = 0, d = 0] = v.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return hoy;
   return v > hoy ? hoy : v;

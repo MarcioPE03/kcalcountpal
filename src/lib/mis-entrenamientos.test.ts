@@ -61,7 +61,7 @@ describe("registro múltiple", () => {
   it("todas las filas en la fecha elegida", () => {
     const f = filasEntrenamientoParaRegistrar([{ clave: "a", item, factor: 1 }, { clave: "b", item: { ...item, nombre: "Correr" }, factor: 2 }], "2026-11-03");
     expect(f.every((x) => x.fecha === "2026-11-03")).toBe(true);
-    expect(f[1].calorias_quemadas).toBe(600);
+    expect(f[1]?.calorias_quemadas).toBe(600);
   });
   it("rechaza más de 10 y filas inválidas", () => {
     const muchas = Array.from({ length: MAX_SELECCION_ENT + 1 }, (_, i) => ({ clave: String(i), item, factor: 1 }));
