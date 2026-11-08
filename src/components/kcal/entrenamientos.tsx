@@ -160,9 +160,8 @@ export function EntrenamientoDialog({ onOpenChange, entrenamiento }: {
               {guardando && <Loader2 className="size-4 animate-spin" />} Guardar
             </Button>
             <Button variant="ghost" className="w-full rounded-full text-destructive" onClick={() => setConfirmar(true)}>
-                <Trash2 className="size-4" /> Borrar
-              </Button>
-            )}
+              <Trash2 className="size-4" /> Borrar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
