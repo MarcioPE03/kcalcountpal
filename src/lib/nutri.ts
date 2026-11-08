@@ -527,3 +527,140 @@ export function dominioPeso(valores: number[], meta?: number | null): [number, n
   const margen = Math.max(1, (max - min) * 0.15);
   return [Math.floor(min - margen), Math.ceil(max + margen)];
 }
+
+// ---------- Macro percentages (one decimal, always summing exactly 100.0) ----------
+export type MacroKey = "proteinas" | "carbohidratos" | "grasas";
+export type PctMacros = Record<MacroKey, number>;
+export const MACRO_KEYS: MacroKey[] = ["proteinas", "carbohidratos", "grasas"];
+export const PCT_MIN = 5;
+export const PCT_MAX = 70;
+export const KCAL_META_MIN = 800;
+export const KCAL_META_MAX = 6000;
+export const KCAL_FACTOR: Record<MacroKey, number> = { proteinas: 4, carbohidratos: 4, grasas: 9 };
+export const PRESETS_PCT: { nombre: string; pct: PctMacros }[] = [
+  { nombre: "Equilibrada", pct: { carbohidratos: 50, proteinas: 20, grasas: 30 } },
+  { nombre: "Alta en proteínas", pct: { carbohidratos: 40, proteinas: 35, grasas: 25 } },
+  { nombre: "Moderada", pct: { carbohidratos: 40, proteinas: 40, grasas: 20 } },
+];
+
+const T_MIN = PCT_MIN * 10;
+const T_MAX = PCT_MAX * 10;
+const aDecimas = (n: number) => Math.round(n * 10);
+
+/** Grams from kcal and an exact (one-decimal) percentage; only the final grams are rounded. */
+export function gramosDesdePct(kcal: number, pct: PctMacros) {
+  const g = (k: MacroKey) => Math.round((kcal * pct[k]) / 100 / KCAL_FACTOR[k]);
+  return { proteinas_g: g("proteinas"), carbohidratos_g: g("carbohidratos"), grasas_g: g("grasas") };
+}
+
+export function kcalMacro(kcal: number, pct: number) {
+  return Math.round((kcal * pct) / 100);
+}
+
+/** Splits `total` tenths between two macros proportionally to weights, by largest remainder, within [5,70]. */
+function repartirDos(total: number, wa: number, wb: number): [number, number] {
+  const suma = wa + wb;
+  const exacta = suma > 0 ? (total * wa) / suma : total / 2;
+  let a = Math.floor(exacta);
+  if (exacta - a > 0.5 || (exacta - a === 0.5 && wa >= wb)) a += 1;
+  a = Math.min(Math.max(a, Math.max(T_MIN, total - T_MAX)), Math.min(T_MAX, total - T_MIN));
+  return [a, total - a];
+}
+
+/**
+ * Sets one macro to `nuevo` (clamped 5–70) and lets the other two absorb the difference
+ * proportionally to their values in `base` (snapshot taken when the drag started → no drift).
+ */
+export function redistribuirPct(base: PctMacros, key: MacroKey, nuevo: number): PctMacros {
+  const otros = MACRO_KEYS.filter((k) => k !== key) as [MacroKey, MacroKey];
+  const t = Math.min(Math.max(aDecimas(nuevo), T_MIN), T_MAX);
+  const [a, b] = repartirDos(1000 - t, base[otros[0]], base[otros[1]]);
+  return { ...base, [key]: t / 10, [otros[0]]: a / 10, [otros[1]]: b / 10 } as PctMacros;
+}
+
+/** Normalizes any positive weights to one-decimal percentages within 5–70 that sum exactly 100.0. */
+export function normalizarPct(raw: PctMacros): PctMacros {
+  const w = MACRO_KEYS.map((k) => Math.max(0, Number(raw[k]) || 0));
+  const suma = w.reduce((s, x) => s + x, 0);
+  const exactas = suma > 0 ? w.map((x) => (x * 1000) / suma) : [1000 / 3, 1000 / 3, 1000 / 3];
+  const t = exactas.map(Math.floor) as number[];
+  const at = (i: number) => t[i] ?? 0;
+  let resto = 1000 - t.reduce((s, x) => s + x, 0);
+  const orden = exactas.map((x, i) => [x - Math.floor(x), i] as const).sort((a, b) => b[0] - a[0]);
+  for (let j = 0; resto > 0; j++, resto--) { const i = orden[j % 3]![1]; t[i] = at(i) + 1; }
+  for (let iter = 0; iter < 6; iter++) {
+    let diff = 0;
+    for (let i = 0; i < 3; i++) {
+      if (at(i) < T_MIN) { diff -= T_MIN - at(i); t[i] = T_MIN; }
+      if (at(i) > T_MAX) { diff += at(i) - T_MAX; t[i] = T_MAX; }
+    }
+    if (diff === 0) break;
+    for (let i = 0; i < 3 && diff !== 0; i++) {
+      const espacio = diff > 0 ? T_MAX - at(i) : at(i) - T_MIN;
+      const mover = Math.min(espacio, Math.abs(diff));
+      t[i] = at(i) + (diff > 0 ? mover : -mover);
+      diff += diff > 0 ? -mover : mover;
+    }
+  }
+  return { proteinas: at(0) / 10, carbohidratos: at(1) / 10, grasas: at(2) / 10 };
+}
+
+/** Percentages derived from gram goals (for goals saved before percentages existed). */
+export function pctDesdeGramos(g: { proteinas_g: number; carbohidratos_g: number; grasas_g: number }): PctMacros {
+  return normalizarPct({ proteinas: g.proteinas_g * 4, carbohidratos: g.carbohidratos_g * 4, grasas: g.grasas_g * 9 });
+}
+
+/** Typed grams → one-decimal percentage, clamped to 5–70 (`ajustado` tells the UI to warn). */
+export function pctDesdeGramosInput(kcal: number, key: MacroKey, gramos: number) {
+  if (!(kcal > 0) || !Number.isFinite(gramos)) return { pct: PCT_MIN, ajustado: true };
+  const exacto = aDecimas(((gramos * KCAL_FACTOR[key]) / kcal) * 100) / 10;
+  const pct = Math.min(Math.max(exacto, PCT_MIN), PCT_MAX);
+  return { pct, ajustado: pct !== exacto };
+}
+
+/** − / + on the kcal goal: snap to the nearest multiple of 50, then step 50; clamped 800–6000. */
+export function pasoKcal(actual: number, dir: 1 | -1) {
+  const base = Math.round((Number.isFinite(actual) ? actual : 2000) / 50) * 50;
+  return Math.min(Math.max(base + dir * 50, KCAL_META_MIN), KCAL_META_MAX);
+}
+
+export function kcalMetaValida(k: number) {
+  return Number.isFinite(k) && k >= KCAL_META_MIN && k <= KCAL_META_MAX;
+}
+
+export function sumaPct(p: PctMacros) {
+  return MACRO_KEYS.reduce((s, k) => s + aDecimas(p[k]), 0) / 10;
+}
+
+/** "32 %" when whole, "26,7 %" otherwise. */
+export function formatPct(n: number) {
+  const r = aDecimas(n) / 10;
+  return `${Number.isInteger(r) ? r : r.toFixed(1).replace(".", ",")} %`;
+}
+
+/** Percentages to use for a saved goal row: stored ones, or derived+normalized from grams. */
+export function pctDeMetas(m: { pct_proteinas?: number | null; pct_carbohidratos?: number | null; pct_grasas?: number | null; proteinas_g: number; carbohidratos_g: number; grasas_g: number }) {
+  if (m.pct_proteinas != null && m.pct_carbohidratos != null && m.pct_grasas != null) {
+    return { pct: { proteinas: Number(m.pct_proteinas), carbohidratos: Number(m.pct_carbohidratos), grasas: Number(m.pct_grasas) }, derivado: false };
+  }
+  return { pct: pctDesdeGramos({ proteinas_g: Number(m.proteinas_g), carbohidratos_g: Number(m.carbohidratos_g), grasas_g: Number(m.grasas_g) }), derivado: true };
+}
+
+/** The only shape written for kcal+macros (adjust screen, onboarding, suggestions). */
+export function filaMacros(kcal: number, pct: PctMacros) {
+  return { calorias: Math.round(kcal), ...gramosDesdePct(kcal, pct), pct_proteinas: pct.proteinas, pct_carbohidratos: pct.carbohidratos, pct_grasas: pct.grasas };
+}
+
+export const CAMPOS_OTROS_LIMITES = ["grasas_saturadas_g", "fibra_g", "azucares_g", "sodio_mg"] as const;
+/** The only shape written for optional limits (0 / empty = not used → null). */
+export function filaOtrosLimites(v: Partial<Record<(typeof CAMPOS_OTROS_LIMITES)[number], number>>) {
+  const o = {} as Record<(typeof CAMPOS_OTROS_LIMITES)[number], number | null>;
+  for (const k of CAMPOS_OTROS_LIMITES) o[k] = v[k] && v[k]! > 0 ? Math.round(v[k]!) : null;
+  return o;
+}
+
+/** Suggested goals expressed as kcal + percentages (grams recomputed so they match). */
+export function metasSugeridasFila(p: DatosPerfil) {
+  const s = metasSugeridas(p);
+  return filaMacros(s.calorias, pctDesdeGramos(s));
+}

@@ -244,6 +244,9 @@ export type Database = {
           fibra_g: number | null
           grasas_g: number
           grasas_saturadas_g: number | null
+          pct_carbohidratos: number | null
+          pct_grasas: number | null
+          pct_proteinas: number | null
           proteinas_g: number
           sodio_mg: number | null
           updated_at: string
@@ -256,6 +259,9 @@ export type Database = {
           fibra_g?: number | null
           grasas_g?: number
           grasas_saturadas_g?: number | null
+          pct_carbohidratos?: number | null
+          pct_grasas?: number | null
+          pct_proteinas?: number | null
           proteinas_g?: number
           sodio_mg?: number | null
           updated_at?: string
@@ -268,6 +274,9 @@ export type Database = {
           fibra_g?: number | null
           grasas_g?: number
           grasas_saturadas_g?: number | null
+          pct_carbohidratos?: number | null
+          pct_grasas?: number | null
+          pct_proteinas?: number | null
           proteinas_g?: number
           sodio_mg?: number | null
           updated_at?: string
