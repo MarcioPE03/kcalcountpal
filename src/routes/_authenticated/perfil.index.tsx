@@ -14,7 +14,7 @@ import { metasQuery, perfilQuery, type Metas } from "@/lib/data";
 import { aplicarTema, leerTema, type Tema } from "@/lib/tema";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/perfil")({
+export const Route = createFileRoute("/_authenticated/perfil/")({
   head: () => ({
     meta: [
       { title: "Perfil y metas — KcalCountPal" },

@@ -13,7 +13,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedProgresoRouteImport } from './routes/_authenticated/progreso'
 import { Route as AuthenticatedAgregarIndexRouteImport } from './routes/_authenticated/agregar.index'
 import { Route as AuthenticatedAgregarCodigoRouteImport } from './routes/_authenticated/agregar.codigo'
@@ -25,6 +24,7 @@ import { Route as AuthenticatedAgregarMisComidasRouteImport } from './routes/_au
 import { Route as AuthenticatedAgregarRevisarRouteImport } from './routes/_authenticated/agregar.revisar'
 import { Route as AuthenticatedComidaIdRouteImport } from './routes/_authenticated/comida.$id'
 import { Route as AuthenticatedDiaFechaRouteImport } from './routes/_authenticated/dia.$fecha'
+import { Route as AuthenticatedPerfilIndexRouteImport } from './routes/_authenticated/perfil.index'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -43,11 +43,6 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProgresoRoute = AuthenticatedProgresoRouteImport.update({
@@ -113,12 +108,17 @@ const AuthenticatedDiaFechaRoute = AuthenticatedDiaFechaRouteImport.update({
   path: '/dia/$fecha',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilIndexRoute =
+  AuthenticatedPerfilIndexRouteImport.update({
+    id: '/perfil/',
+    path: '/perfil/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/perfil': typeof AuthenticatedPerfilRoute
   '/progreso': typeof AuthenticatedProgresoRoute
   '/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
   '/agregar/describir': typeof AuthenticatedAgregarDescribirRoute
@@ -130,11 +130,11 @@ export interface FileRoutesByFullPath {
   '/comida/$id': typeof AuthenticatedComidaIdRoute
   '/dia/$fecha': typeof AuthenticatedDiaFechaRoute
   '/agregar/': typeof AuthenticatedAgregarIndexRoute
+  '/perfil/': typeof AuthenticatedPerfilIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/perfil': typeof AuthenticatedPerfilRoute
   '/progreso': typeof AuthenticatedProgresoRoute
   '/': typeof AuthenticatedIndexRoute
   '/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
@@ -147,13 +147,13 @@ export interface FileRoutesByTo {
   '/comida/$id': typeof AuthenticatedComidaIdRoute
   '/dia/$fecha': typeof AuthenticatedDiaFechaRoute
   '/agregar': typeof AuthenticatedAgregarIndexRoute
+  '/perfil': typeof AuthenticatedPerfilIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
-  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/progreso': typeof AuthenticatedProgresoRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/agregar/codigo': typeof AuthenticatedAgregarCodigoRoute
@@ -166,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated/comida/$id': typeof AuthenticatedComidaIdRoute
   '/_authenticated/dia/$fecha': typeof AuthenticatedDiaFechaRoute
   '/_authenticated/agregar/': typeof AuthenticatedAgregarIndexRoute
+  '/_authenticated/perfil/': typeof AuthenticatedPerfilIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,7 +174,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/onboarding'
-    | '/perfil'
     | '/progreso'
     | '/agregar/codigo'
     | '/agregar/describir'
@@ -185,11 +185,11 @@ export interface FileRouteTypes {
     | '/comida/$id'
     | '/dia/$fecha'
     | '/agregar/'
+    | '/perfil/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
     | '/onboarding'
-    | '/perfil'
     | '/progreso'
     | '/'
     | '/agregar/codigo'
@@ -202,12 +202,12 @@ export interface FileRouteTypes {
     | '/comida/$id'
     | '/dia/$fecha'
     | '/agregar'
+    | '/perfil'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/onboarding'
-    | '/_authenticated/perfil'
     | '/_authenticated/progreso'
     | '/_authenticated/'
     | '/_authenticated/agregar/codigo'
@@ -220,6 +220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comida/$id'
     | '/_authenticated/dia/$fecha'
     | '/_authenticated/agregar/'
+    | '/_authenticated/perfil/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -255,13 +256,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/perfil': {
-      id: '/_authenticated/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/progreso': {
@@ -341,12 +335,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDiaFechaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil/': {
+      id: '/_authenticated/perfil/'
+      path: '/perfil'
+      fullPath: '/perfil/'
+      preLoaderRoute: typeof AuthenticatedPerfilIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
-  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProgresoRoute: typeof AuthenticatedProgresoRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAgregarCodigoRoute: typeof AuthenticatedAgregarCodigoRoute
@@ -359,11 +359,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedComidaIdRoute: typeof AuthenticatedComidaIdRoute
   AuthenticatedDiaFechaRoute: typeof AuthenticatedDiaFechaRoute
   AuthenticatedAgregarIndexRoute: typeof AuthenticatedAgregarIndexRoute
+  AuthenticatedPerfilIndexRoute: typeof AuthenticatedPerfilIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
-  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProgresoRoute: AuthenticatedProgresoRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAgregarCodigoRoute: AuthenticatedAgregarCodigoRoute,
@@ -377,6 +377,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedComidaIdRoute: AuthenticatedComidaIdRoute,
   AuthenticatedDiaFechaRoute: AuthenticatedDiaFechaRoute,
   AuthenticatedAgregarIndexRoute: AuthenticatedAgregarIndexRoute,
+  AuthenticatedPerfilIndexRoute: AuthenticatedPerfilIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
