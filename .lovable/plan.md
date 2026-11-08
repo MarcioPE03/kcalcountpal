@@ -26,7 +26,20 @@ No se borra ninguna comida, entrenamiento, peso ni favorito.
 - En Hoy, el botón "Agregar entrenamiento" del panel de "Quemadas" lleva a esta pantalla con la fecha elegida.
 - Al tocar un entrenamiento ya cargado, se sigue editando en el diálogo actual, que ahora también tiene el corazón de favorito.
 
+## Ajustes aprobados
+- **Escalado seguro:** al multiplicar, las kcal y la duración se redondean al número entero. Si un resultado queda fuera de rango (kcal menor a 1 o mayor a 5000, o duración menor a 1), esa fila muestra un aviso. "Registrar" queda desactivado hasta que quites la fila o cambies el multiplicador. Ningún valor se recorta sin avisarte.
+- **Botón fijo:** "Registrar (N)" no aparece en la pestaña Nuevo. Ahí solo está su botón Guardar.
+- **Fecha:** si la fecha del enlace está mal escrita o es futura, se usa hoy en hora de Buenos Aires. La opción "Entrenamiento" del menú Agregar también pasa la fecha elegida en Hoy.
+- **Recientes:** se traen unos 200 entrenamientos, se quitan los repetidos y "Ver más" pagina sobre esa lista, así no reaparecen repetidos entre páginas.
+- **Cuándo es el mismo entrenamiento:** coinciden el nombre, las kcal y la duración. Con la misma duración vacía también cuenta como igual. Con distinta duración son dos entradas.
+- **Corazón al editar:** crea o actualiza un favorito con los valores actuales, sin duplicarlo. Aparece lleno si ya existe un favorito igual.
+- **Si falla el favorito:** en Nuevo y al editar, el entrenamiento se guarda primero. Si después falla el favorito, ves un aviso y no se bloquea nada.
+- **Limpieza:** saco de Agregar el diálogo y el código viejo de "Entrenamiento".
+
 ## 4. Tests
+- 3000 kcal con ×2: rechazado. 45 min con ×1,5: 68 min. 1 kcal con ×0,5: rechazado.
+- Fecha mal escrita o futura: se usa hoy.
+- Mismo nombre y mismas kcal con distinta duración: son dos entradas distintas.
 - Orden por momento: una merienda cargada a las 20:00 y un desayuno cargado después muestran primero el desayuno.
 - Momentos desconocidos al final.
 - Recientes sin repetidos.
