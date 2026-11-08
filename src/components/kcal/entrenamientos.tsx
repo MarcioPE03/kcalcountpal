@@ -159,8 +159,7 @@ export function EntrenamientoDialog({ onOpenChange, entrenamiento }: {
             <Button className="w-full rounded-full" onClick={guardar} disabled={guardando}>
               {guardando && <Loader2 className="size-4 animate-spin" />} Guardar
             </Button>
-            {(
-              <Button variant="ghost" className="w-full rounded-full text-destructive" onClick={() => setConfirmar(true)}>
+            <Button variant="ghost" className="w-full rounded-full text-destructive" onClick={() => setConfirmar(true)}>
                 <Trash2 className="size-4" /> Borrar
               </Button>
             )}

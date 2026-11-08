@@ -10,7 +10,7 @@ import { Flame, Utensils } from "lucide-react";
 import { MealRow } from "@/components/kcal/meal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { comidasDiaQuery, entrenamientosDiaQuery, metasQuery, perfilQuery, totalDia, totalQuemadas } from "@/lib/data";
-import { balanceDia, fechaLocal, fmt, fmtFechaCorta, sumarDias, tituloLista } from "@/lib/nutri";
+import { balanceDia, fechaLocal, ordenarComidas, fmt, fmtFechaCorta, sumarDias, tituloLista } from "@/lib/nutri";
 import { useFechaSeleccionada } from "@/lib/stores";
 
 export const Route = createFileRoute("/_authenticated/")({
