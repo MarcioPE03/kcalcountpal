@@ -14,11 +14,18 @@ Esto aplica a la pantalla de revisión y al detalle de una comida guardada. No s
 - Lo que editás a mano nunca se corrige solo. Si las kcal no cierran con 4×P + 4×C + 9×G, aparece un aviso suave en ámbar y nada más.
 - En una comida guardada se usa el mismo panel. "Guardar cambios" actualiza la comida y conserva su origen, su fecha y su momento.
 
-## 2. Grasa visible separada
-- Le explico a la IA qué hacer con los cortes con grasa que se suele dejar en el plato: bife ancho, asado, costillar, bondiola, panceta y chuleta.
-- En esos casos, la grasa visible viene como un ingrediente aparte, por ejemplo "Grasa visible del bife ancho (descartable)", con categoría Carnes. La carne magra viene en otra fila, con su grasa intramuscular.
-- Solo se separa si la grasa se ve en la foto o la descripción la menciona. Si decís que la sacaste o no la comiste, no se incluye.
-- Así podés borrar esa fila con un toque.
+## 2. Grasa visible o piel separada (lista cerrada)
+- La IA separa una fila aparte solo en estos casos:
+  - **Cortes vacunos o de cerdo con grasa visible:** bife ancho, asado, costillar, vacío, bondiola, panceta y chuleta. La fila se llama, por ejemplo, "Grasa visible del bife ancho (descartable)" y va en Carnes.
+  - **Pollo con piel:** pata muslo, muslo, alitas y pollo entero al horno. La fila se llama "Piel del pollo" y va en Carnes.
+- Nunca separa grasa en:
+  - lácteos, verduras, frutas, pastas, arroz ni panificados
+  - salsas, ensaladas, guisos ni milanesas
+  - cortes magros: pechuga sin piel, lomo, peceto, nalga y cuadril
+  - preparaciones mixtas donde la grasa no se distingue
+- Solo separa la fila si la grasa o la piel se ve en la foto o la descripción la menciona. Si decís que la sacaste o no la comiste, no la incluye. Ante la duda, no separa.
+- La carne magra no incluye la grasa ni la piel que quedó en la fila aparte, así no se cuenta dos veces.
+- La fila separada aparece resaltada con "¿La comiste? Si la dejaste, eliminala".
 
 ## 3. Corregir con IA (texto o voz)
 - Al final de la revisión y del detalle de la comida aparece la tarjeta "¿Querés corregir o aclarar algo?". Tiene un campo de texto de hasta 500 caracteres, el micrófono (el mismo dictado que ya usás) y el botón "Corregir".
@@ -41,8 +48,17 @@ Esto aplica a la pantalla de revisión y al detalle de una comida guardada. No s
 - Una categoría inválida pasa a "Otros".
 - Las correcciones no consumen el cupo de análisis, y una fallida no cuenta.
 - Deshacer vuelve a la versión anterior.
+- Grasa o piel con respuestas simuladas de la IA:
+  - yogur, ensalada, pechuga a la plancha, milanesa y fideos no muestran fila de grasa
+  - bife ancho con grasa visible y muslo de pollo al horno sí la muestran
+  - si la IA devuelve una fila de grasa para un plato excluido, la app la une a la carne y no la muestra aparte
+- Además lo pruebo a mano con fotos reales.
 
 ## Detalles técnicos
+- Grasa o piel:
+  - La IA marca la fila con `descartable: true`.
+  - Una regla pura en `analisis.ts` (`filtrarDescartables`) solo acepta esa marca si el nombre del plato o de otra fila coincide con la lista cerrada y no con las exclusiones. Si no coincide, la fila vuelve a sumarse a su carne o se descarta la marca.
+  - La revisión muestra el aviso en ámbar sobre las filas con `descartable`.
 - `nutri.ts` (puro):
   - `editarValoresIngrediente(ing, valores)` recalcula `por_gramo` a partir de los valores y los gramos actuales.
   - `escalarIngrediente`, que ya existe, cubre el cambio de gramos.
