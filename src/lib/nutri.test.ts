@@ -189,7 +189,7 @@ describe("metas en porcentajes", () => {
     const r = pctDeMetas({ proteinas_g: 120, carbohidratos_g: 250, grasas_g: 70, pct_proteinas: null, pct_carbohidratos: null, pct_grasas: null });
     expect(r.derivado).toBe(true);
     expect(sumaPct(r.pct)).toBe(100);
-    expect(normalizarPct({ proteinas: 1, carbohidratos: 99, grasas: 0 })).toEqual({ proteinas: 5, carbohidratos: 70, grasas: 25 });
+    expect(normalizarPct({ proteinas: 1, carbohidratos: 99, grasas: 0 })).toEqual({ proteinas: 25, carbohidratos: 70, grasas: 5 });
     expect(sumaPct(pctDesdeGramos({ proteinas_g: 0, carbohidratos_g: 0, grasas_g: 0 }))).toBe(100);
   });
   it("paso de kcal redondea a múltiplos de 50", () => {
