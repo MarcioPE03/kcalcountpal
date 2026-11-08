@@ -1,4 +1,4 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, BarChart3, Home, Plus, User } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 export function BottomNav() {
   const item = "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted-foreground transition-colors";
   const active = { className: "text-primary" };
+  const pathname = useLocation({ select: (l) => l.pathname });
+  if (pathname.startsWith("/perfil/metas")) return null;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur pb-safe">
       <div className="mx-auto flex max-w-md items-end px-6">
