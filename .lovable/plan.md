@@ -17,20 +17,20 @@ No se borran datos; las metas siguen guardándose en gramos (fuente para Hoy, ba
 - Metas anteriores sin porcentajes: se derivan de los gramos y se normalizan a 100, con el aviso "Ajustamos los porcentajes para que coincidan con tus calorías. Guardá para confirmar". No se guarda nada hasta tocar Guardar.
 
 ## 3. Datos
-- Se agregan a las metas diarias tres porcentajes opcionales (enteros de 5 a 70). Se guardan junto con los gramos.
+- Se agregan a las metas diarias tres porcentajes opcionales con un decimal (5,0 a 70,0). Se guardan junto con los gramos, que se calculan con el porcentaje exacto, sin redondearlo antes.
 - Al guardar se actualizan las metas, Hoy, el detalle del día y Progreso.
 - El onboarding y las metas sugeridas también guardan los porcentajes.
 
 ## 4. Tests (funciones puras en nutri.ts)
-- Gramos desde % y kcal: P/C con ÷4 y G con ÷9, redondeados.
+- Gramos desde % y kcal: round(kcal × % ÷ 100 ÷ 4) para P/C y ÷ 9 para G. El porcentaje se usa con su decimal y solo se redondean los gramos finales. 26,7 % con 1.800 kcal da 120 g de proteína.
 - Porcentajes desde gramos, normalizados a 100.
 - La redistribución siempre suma 100 y respeta 5/70 (incluye casos extremos).
 - Cambiar las kcal mantiene los porcentajes.
 - Las metas viejas que no cierran con las kcal se normalizan.
-- 120 g de proteína con 1.500 kcal da 32 %.
+- 120 g de proteína con 1.500 kcal da 32,0 %.
 
 ## Detalles técnicos
-- Migración: `pct_proteinas`, `pct_carbohidratos` y `pct_grasas` int nullable, con CHECK 5–70, en `metas_diarias`.
+- Migración: `pct_proteinas`, `pct_carbohidratos` y `pct_grasas` numeric(4,1) nullable, con CHECK 5.0–70.0, en `metas_diarias`.
 - Nuevas funciones puras: `gramosDesdePct`, `pctDesdeGramos`, `redistribuirPct`, `pctDesdeGramosInput` y `normalizarPct` (mayor residuo).
 - Rutas: `perfil.tsx` pasa a ser un layout con `<Outlet />`. El contenido actual va a `perfil.index.tsx` y se crea `perfil.metas.tsx`. Cada ruta tiene su head().
 - El aviso de salida usa `useBlocker` de TanStack Router.
