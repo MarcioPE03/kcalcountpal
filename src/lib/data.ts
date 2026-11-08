@@ -387,3 +387,29 @@ export function filaProductoPropio(
     grasas_saturadas: p.por100.grasas_saturadas, fibra: p.por100.fibra, azucares: p.por100.azucares, sodio_mg: p.por100.sodio_mg,
   };
 }
+
+/** Single writer for kcal + macro grams + percentages (adjust screen, onboarding, suggestions). */
+export async function guardarMetasMacros(kcal: number, pct: import("./nutri").PctMacros) {
+  const { filaMacros } = await import("./nutri");
+  const user_id = await uid();
+  const fila = { ...filaMacros(kcal, pct), updated_at: new Date().toISOString() };
+  const { data, error } = await supabase.from("metas_diarias").update(fila).eq("user_id", user_id).select("user_id");
+  if (error) throw error;
+  if (!data?.length) {
+    const { error: e2 } = await supabase.from("metas_diarias").insert({ user_id, ...fila });
+    if (e2) throw e2;
+  }
+}
+
+/** Writes only the 4 optional limits. */
+export async function guardarOtrosLimites(v: Parameters<typeof import("./nutri").filaOtrosLimites>[0]) {
+  const { filaOtrosLimites } = await import("./nutri");
+  const user_id = await uid();
+  const { error } = await supabase.from("metas_diarias").update({ ...filaOtrosLimites(v), updated_at: new Date().toISOString() }).eq("user_id", user_id);
+  if (error) throw error;
+}
+
+export function invalidarMetas(qc: import("@tanstack/react-query").QueryClient) {
+  for (const k of ["metas", "comidas", "entrenamientos", "pesos", "perfil"]) qc.invalidateQueries({ queryKey: [k] });
+  qc.invalidateQueries();
+}

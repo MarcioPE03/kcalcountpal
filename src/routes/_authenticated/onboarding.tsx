@@ -73,8 +73,7 @@ function Onboarding() {
       if (usar) await guardarPeso(fechaLocal(), peso_kg);
       qc.invalidateQueries({ queryKey: ["pesos"] });
       if (usar && s) {
-        const { error: e2 } = await supabase.from("metas_diarias").upsert({ user_id: id, ...s, updated_at: new Date().toISOString() });
-        if (e2) throw e2;
+        await guardarMetasMacros(s.calorias, pctDesdeGramos(s));
       }
       qc.invalidateQueries({ queryKey: ["perfil"] });
       qc.invalidateQueries({ queryKey: ["metas"] });
