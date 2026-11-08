@@ -140,3 +140,78 @@ describe("balance con entrenamientos", () => {
     expect(validarQuemadas(5000)).toBeNull();
   });
 });
+
+import { filaMacros, filaOtrosLimites, formatPct, gramosDesdePct, metasSugeridasFila, normalizarPct, pasoKcal, pctDeMetas, pctDesdeGramos, pctDesdeGramosInput, redistribuirPct, sumaPct } from "./nutri";
+
+describe("metas en porcentajes", () => {
+  it("gramos desde % exacto (sin redondear el %)", () => {
+    expect(gramosDesdePct(1800, { proteinas: 26.7, carbohidratos: 43.3, grasas: 30 }).proteinas_g).toBe(120);
+    expect(gramosDesdePct(2000, { proteinas: 30, carbohidratos: 40, grasas: 30 })).toEqual({ proteinas_g: 150, carbohidratos_g: 200, grasas_g: 67 });
+  });
+  it("gramos tipeados → % con un decimal", () => {
+    expect(pctDesdeGramosInput(1500, "proteinas", 120)).toEqual({ pct: 32, ajustado: false });
+    expect(pctDesdeGramosInput(1800, "proteinas", 120).pct).toBe(26.7);
+    expect(pctDesdeGramosInput(1500, "proteinas", 900)).toEqual({ pct: 70, ajustado: true });
+    expect(pctDesdeGramosInput(1500, "grasas", 1)).toEqual({ pct: 5, ajustado: true });
+  });
+  it("120 g con 1.800 kcal sigue dando 120 g al guardar y reabrir", () => {
+    const pct = redistribuirPct({ proteinas: 30, carbohidratos: 40, grasas: 30 }, "proteinas", pctDesdeGramosInput(1800, "proteinas", 120).pct);
+    const fila = filaMacros(1800, pct);
+    const reabierto = pctDeMetas(fila);
+    expect(reabierto.derivado).toBe(false);
+    expect(gramosDesdePct(1800, reabierto.pct).proteinas_g).toBe(120);
+  });
+  it("redistribución siempre suma 100,0 y respeta 5–70", () => {
+    const base = { proteinas: 20, carbohidratos: 50, grasas: 30 };
+    for (const k of ["proteinas", "carbohidratos", "grasas"] as const) {
+      for (let v = 0; v <= 100; v += 0.7) {
+        const r = redistribuirPct(base, k, v);
+        expect(sumaPct(r)).toBe(100);
+        for (const x of Object.values(r)) { expect(x).toBeGreaterThanOrEqual(5); expect(x).toBeLessThanOrEqual(70); }
+      }
+    }
+    expect(redistribuirPct(base, "proteinas", 70)).toEqual({ proteinas: 70, carbohidratos: 18.8, grasas: 11.2 });
+  });
+  it("ida y vuelta de un slider sin deriva", () => {
+    const base = { proteinas: 30, carbohidratos: 43.3, grasas: 26.7 };
+    let actual = base;
+    for (let v = 31; v <= 50; v++) actual = redistribuirPct(base, "proteinas", v);
+    for (let v = 49; v >= 30; v--) actual = redistribuirPct(base, "proteinas", v);
+    expect(actual).toEqual(base);
+  });
+  it("cambiar calorías mantiene porcentajes", () => {
+    const pct = { proteinas: 30, carbohidratos: 40, grasas: 30 };
+    const a = filaMacros(2000, pct), b = filaMacros(1500, pct);
+    expect([b.pct_proteinas, b.pct_carbohidratos, b.pct_grasas]).toEqual([a.pct_proteinas, a.pct_carbohidratos, a.pct_grasas]);
+    expect(b.proteinas_g).toBe(113);
+  });
+  it("metas viejas que no cierran se normalizan", () => {
+    const r = pctDeMetas({ proteinas_g: 120, carbohidratos_g: 250, grasas_g: 70, pct_proteinas: null, pct_carbohidratos: null, pct_grasas: null });
+    expect(r.derivado).toBe(true);
+    expect(sumaPct(r.pct)).toBe(100);
+    expect(normalizarPct({ proteinas: 1, carbohidratos: 99, grasas: 0 })).toEqual({ proteinas: 5, carbohidratos: 70, grasas: 25 });
+    expect(sumaPct(pctDesdeGramos({ proteinas_g: 0, carbohidratos_g: 0, grasas_g: 0 }))).toBe(100);
+  });
+  it("paso de kcal redondea a múltiplos de 50", () => {
+    expect(pasoKcal(1498, 1)).toBe(1550);
+    expect(pasoKcal(1498, -1)).toBe(1450);
+    expect(pasoKcal(800, -1)).toBe(800);
+    expect(pasoKcal(6000, 1)).toBe(6000);
+  });
+  it("guardados parciales no se pisan", () => {
+    const macros = Object.keys(filaMacros(2000, { proteinas: 30, carbohidratos: 40, grasas: 30 }));
+    const otros = Object.keys(filaOtrosLimites({ fibra_g: 25 }));
+    expect(macros.filter((k) => otros.includes(k))).toEqual([]);
+    expect(otros.sort()).toEqual(["azucares_g", "fibra_g", "grasas_saturadas_g", "sodio_mg"]);
+    expect(filaOtrosLimites({ fibra_g: 0, sodio_mg: 2300 })).toMatchObject({ fibra_g: null, sodio_mg: 2300 });
+  });
+  it("onboarding guarda porcentajes que suman 100", () => {
+    const f = metasSugeridasFila({ peso_kg: 70, altura_cm: 170, edad: 30, sexo: "mujer", nivel_actividad: "ligero", objetivo: "mantener" });
+    expect(f.pct_proteinas! + f.pct_carbohidratos! + f.pct_grasas!).toBeCloseTo(100, 5);
+    expect(sumaPct({ proteinas: f.pct_proteinas, carbohidratos: f.pct_carbohidratos, grasas: f.pct_grasas })).toBe(100);
+  });
+  it("formato de %", () => {
+    expect(formatPct(32)).toBe("32 %");
+    expect(formatPct(26.7)).toBe("26,7 %");
+  });
+});
