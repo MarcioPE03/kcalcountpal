@@ -71,6 +71,10 @@ export type Ingrediente = Nutrientes & {
   /** Values per gram, used to rescale when grams change. */
   por_gramo: Nutrientes;
   categoria?: string;
+  /** The user edited values by hand: never auto-corrected (Atwater) and protected from AI corrections. */
+  editado_manual?: boolean;
+  /** Visible fat / chicken skin the user may leave on the plate (closed list, see analisis.ts). */
+  descartable?: boolean;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -87,10 +91,76 @@ export function crearIngrediente(
   return { id, nombre, gramos, por_gramo, ...valores, ...(categoria ? { categoria } : {}) };
 }
 
+/** Rescales by grams (full precision). Without a usable per-gram base (0 g rows), values stay and the base is rebuilt. */
 export function escalarIngrediente(ing: Ingrediente, gramos: number): Ingrediente {
-  const g = Math.max(0, gramos);
-  const out: Ingrediente = { ...ing, gramos: g };
-  for (const k of NUTRIENTES) out[k] = r1(ing.por_gramo[k] * g);
+  const g = Number.isFinite(gramos) ? Math.max(0, gramos) : 0;
+  if (g === ing.gramos) return ing;
+  const sinBase = !(ing.gramos > 0) && NUTRIENTES.every((k) => !ing.por_gramo?.[k]);
+  if (sinBase || g === 0) {
+    const por_gramo = vacio();
+    for (const k of NUTRIENTES) por_gramo[k] = g > 0 ? ing[k] / g : (ing.por_gramo?.[k] ?? 0);
+    return { ...ing, gramos: g, por_gramo };
+  }
+  const out: Ingrediente = { ...ing, gramos: g, por_gramo: { ...ing.por_gramo } };
+  for (const k of NUTRIENTES) out[k] = ing.por_gramo[k] * g;
+  return out;
+}
+
+/** Applies hand-edited values: only the changed fields update their per-gram value. No change = same object. */
+export function editarValoresIngrediente(ing: Ingrediente, cambios: Partial<Nutrientes>): Ingrediente {
+  const keys = NUTRIENTES.filter((k) => cambios[k] != null && Number.isFinite(cambios[k]) && cambios[k] !== ing[k]);
+  if (keys.length === 0) return ing;
+  const out: Ingrediente = { ...ing, por_gramo: { ...ing.por_gramo }, editado_manual: true };
+  for (const k of keys) {
+    const v = Math.max(0, cambios[k] as number);
+    out[k] = v;
+    out.por_gramo[k] = ing.gramos > 0 ? v / ing.gramos : 0;
+  }
+  return out;
+}
+
+/** Soft warning only (never modifies): kcal far from 4P+4C+9G. */
+export function avisoAtwater(v: Nutrientes, tolerancia = 0.12): boolean {
+  const m = kcalDesdeMacros(v.proteinas, v.carbohidratos, v.grasas);
+  if (m <= 0 && v.calorias <= 0) return false;
+  return Math.abs(v.calorias - m) > Math.max(20, tolerancia * Math.max(m, v.calorias));
+}
+
+/** True when the row carries all 8 nutrient values (or a per-gram base). */
+function filaCompleta(o: Record<string, unknown>): boolean {
+  return (!!o["por_gramo"] && typeof o["por_gramo"] === "object") || NUTRIENTES.every((k) => o[k] != null && Number.isFinite(Number(o[k])));
+}
+
+/**
+ * Reads stored ingredient JSON: stable unique ids, numeric values, per-gram base when missing.
+ * Rows without the full nutrient set are dropped (those meals are edited with the totals form).
+ */
+export function normalizarIngredientes(json: unknown): Ingrediente[] {
+  const arr = Array.isArray(json) ? json : [];
+  const vistos = new Set<string>();
+  const out: Ingrediente[] = [];
+  arr.forEach((raw, idx) => {
+    if (!raw || typeof raw !== "object") return;
+    const o = raw as Record<string, unknown>;
+    if (!filaCompleta(o)) return;
+    let id = typeof o["id"] === "string" && o["id"] ? (o["id"] as string) : `ing-${idx}`;
+    while (vistos.has(id)) id = `${id}-${idx}`;
+    vistos.add(id);
+    const gramos = Math.max(0, Number(o["gramos"]) || 0);
+    const v = vacio();
+    for (const k of NUTRIENTES) v[k] = Math.max(0, Number(o[k]) || 0);
+    const pgRaw = o["por_gramo"] as Record<string, unknown> | undefined;
+    const por_gramo = vacio();
+    for (const k of NUTRIENTES) {
+      const p = Number(pgRaw?.[k]);
+      por_gramo[k] = pgRaw && Number.isFinite(p) ? p : gramos > 0 ? v[k] / gramos : 0;
+    }
+    const ing: Ingrediente = { id, nombre: String(o["nombre"] ?? "Ingrediente"), gramos, por_gramo, ...v };
+    if (typeof o["categoria"] === "string") ing.categoria = o["categoria"];
+    if (o["editado_manual"] === true) ing.editado_manual = true;
+    if (o["descartable"] === true) ing.descartable = true;
+    out.push(ing);
+  });
   return out;
 }
 

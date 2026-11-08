@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
-import { NUTRIENTES, sumar, type Ingrediente, type Nutrientes } from "./nutri";
+import { NUTRIENTES, normalizarIngredientes, sumar, type Ingrediente, type Nutrientes } from "./nutri";
 import { dedupRecientes, favoritoDesde, type FilaNueva, type ItemComida } from "./mis-comidas";
 import { dedupRecientesEntrenamientos, favoritoEntrenamientoDesde, type ItemEnt } from "./mis-entrenamientos";
 
@@ -213,12 +213,7 @@ export function copiaDe(c: Comida, fecha: string, momento?: string): NuevaComida
 }
 
 export function leerIngredientes(c: Comida): Ingrediente[] {
-  const arr = Array.isArray(c.ingredientes) ? (c.ingredientes as unknown as Ingrediente[]) : [];
-  return arr.filter((i) => i && typeof i === "object" && "por_gramo" in i).map((i) => {
-    const out = { ...i };
-    for (const k of NUTRIENTES) out[k] = Number(out[k]) || 0;
-    return out;
-  });
+  return normalizarIngredientes(c.ingredientes);
 }
 
 // ---------- Pesos (única fuente de verdad del peso) ----------
