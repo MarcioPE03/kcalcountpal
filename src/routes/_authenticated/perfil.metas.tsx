@@ -35,9 +35,9 @@ export const Route = createFileRoute("/_authenticated/perfil/metas")({
 });
 
 const SLIDER_CLASS: Record<MacroKey, string> = {
-  proteinas: "[&_[data-slot=slider-range]]:bg-protein [&_[role=slider]]:border-protein",
-  carbohidratos: "[&_[data-slot=slider-range]]:bg-carbs [&_[role=slider]]:border-carbs",
-  grasas: "[&_[data-slot=slider-range]]:bg-fat [&_[role=slider]]:border-fat",
+  proteinas: "[&>span:first-child>span]:bg-protein [&_[role=slider]]:border-protein",
+  carbohidratos: "[&>span:first-child>span]:bg-carbs [&_[role=slider]]:border-carbs",
+  grasas: "[&>span:first-child>span]:bg-fat [&_[role=slider]]:border-fat",
 };
 
 const parseNum = (t: string) => {

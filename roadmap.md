@@ -41,3 +41,8 @@
 - [x] Editor por ingrediente (revisión y detalle)
 - [x] Grasa visible / piel con lista cerrada y exclusiones
 - [x] Corregir con IA con cupo propio y deshacer
+
+## Metas en Perfil (calorías y macros)
+- [x] Tarjeta resumen con mini anillo y "Otros límites (opcional)"
+- [x] Pantalla Ajustar calorías y macros (sliders en pareja, gramos editables, atajos, aviso de salida)
+- [x] Porcentajes con un decimal guardados junto a los gramos; onboarding también
