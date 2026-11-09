@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Bar, ComposedChart, Cell, Line, Pie, PieChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, ComposedChart, Cell, Line, Pie, PieChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/kcal/layout";
 import { comidaANutrientes, comidasRangoQuery, entrenamientosRangoQuery, metasQuery, perfilQuery } from "@/lib/data";
 import {

@@ -73,7 +73,7 @@ function Onboarding() {
       if (usar) await guardarPeso(fechaLocal(), peso_kg);
       qc.invalidateQueries({ queryKey: ["pesos"] });
       if (usar && s) {
-        await guardarMetasMacros(s.calorias, { proteinas: s.pct_proteinas, carbohidratos: s.pct_carbohidratos, grasas: s.pct_grasas });
+        await guardarMetasMacros(s.calorias, { proteinas: s.pct_proteinas, carbohidratos: s.pct_carbohidratos, grasas: s.pct_grasas }, "descanso");
       }
       qc.invalidateQueries({ queryKey: ["perfil"] });
       qc.invalidateQueries({ queryKey: ["metas"] });
