@@ -107,7 +107,7 @@ function Hoy() {
           <MacroColumna label="Carbos" valor={t.carbohidratos} meta={m ? Number(m.carbohidratos_g) : null} color="carbs" />
           <MacroColumna label="Grasas" valor={t.grasas} meta={m ? Number(m.grasas_g) : null} color="fat" />
         </div>
-        {listo && md.faltanEntreno && md.esDiaEntreno === false && (entrenamientos.data?.length ?? 0) > 0 && (
+        {listo && md.faltanEntreno && md.esDiaEntreno && (
           <Link to="/perfil/metas" search={{ tipo: "entreno" }} className="mt-3 block text-center text-xs font-medium text-primary underline underline-offset-2">Configurá tus metas de entrenamiento</Link>
         )}
         <Link to="/dia/$fecha" params={{ fecha }} className="mt-4 flex items-center justify-center gap-1 text-sm font-medium text-primary">
