@@ -111,25 +111,25 @@ describe("fechas del calendario", () => {
 import { balanceDia, validarQuemadas } from "./nutri";
 describe("balance con entrenamientos", () => {
   it("restantes sin entrenamientos", () => {
-    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 0, sumarQuemadas: true }).restante).toBe(500);
+    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 0, modo: "sumar_quemadas" }).restante).toBe(500);
   });
   it("restantes suma quemadas si el interruptor está activado", () => {
-    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 300, sumarQuemadas: true }).restante).toBe(800);
+    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 300, modo: "sumar_quemadas" }).restante).toBe(800);
   });
   it("con interruptor apagado las quemadas no cambian el restante", () => {
-    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 300, sumarQuemadas: false }).restante).toBe(500);
+    expect(balanceDia({ consumidas: 1500, limite: 2000, quemadas: 300, modo: "fija" }).restante).toBe(500);
   });
   it("progreso del anillo según el interruptor", () => {
-    expect(balanceDia({ consumidas: 1150, limite: 2000, quemadas: 300, sumarQuemadas: true }).progreso).toBe(0.5);
-    expect(balanceDia({ consumidas: 1000, limite: 2000, quemadas: 300, sumarQuemadas: false }).progreso).toBe(0.5);
+    expect(balanceDia({ consumidas: 1150, limite: 2000, quemadas: 300, modo: "sumar_quemadas" }).progreso).toBe(0.5);
+    expect(balanceDia({ consumidas: 1000, limite: 2000, quemadas: 300, modo: "fija" }).progreso).toBe(0.5);
   });
   it("progreso con tope del 100 % y límite 0", () => {
-    expect(balanceDia({ consumidas: 3000, limite: 2000, quemadas: 0, sumarQuemadas: true }).progreso).toBe(1);
-    expect(balanceDia({ consumidas: 0, limite: 0, quemadas: 0, sumarQuemadas: true }).progreso).toBe(0);
-    expect(balanceDia({ consumidas: 500, limite: 0, quemadas: 0, sumarQuemadas: false }).progreso).toBe(1);
+    expect(balanceDia({ consumidas: 3000, limite: 2000, quemadas: 0, modo: "sumar_quemadas" }).progreso).toBe(1);
+    expect(balanceDia({ consumidas: 0, limite: 0, quemadas: 0, modo: "sumar_quemadas" }).progreso).toBe(0);
+    expect(balanceDia({ consumidas: 500, limite: 0, quemadas: 0, modo: "fija" }).progreso).toBe(1);
   });
   it("muestra kcal de más al pasarse", () => {
-    const b = balanceDia({ consumidas: 2400, limite: 2000, quemadas: 200, sumarQuemadas: true });
+    const b = balanceDia({ consumidas: 2400, limite: 2000, quemadas: 200, modo: "sumar_quemadas" });
     expect(b).toMatchObject({ restante: 0, excedido: 200, leyenda: "kcal de más" });
   });
   it("valida rango de kcal quemadas", () => {
@@ -213,5 +213,78 @@ describe("metas en porcentajes", () => {
   it("formato de %", () => {
     expect(formatPct(32)).toBe("32 %");
     expect(formatPct(26.7)).toBe("26,7 %");
+  });
+});
+
+import { esDiaEntrenamiento, filaMetasTipo, limitesPorDia, metasParaDia, modoDesdeSumar, quemadasPorFecha } from "./nutri";
+import { fechaLocal as fechaBA } from "./nutri";
+
+describe("metas por tipo de día", () => {
+  const base = { calorias: 1500, proteinas_g: 120, carbohidratos_g: 150, grasas_g: 50, pct_proteinas: 32, pct_carbohidratos: 40, pct_grasas: 28, grasas_saturadas_g: 20 };
+  const conEnt = { ...base, calorias_entreno: 1700, proteinas_g_entreno: 128, carbohidratos_g_entreno: 191, grasas_g_entreno: 47, pct_proteinas_entreno: 30.1, pct_carbohidratos_entreno: 45, pct_grasas_entreno: 24.9 };
+  const dia = (o: Partial<Parameters<typeof metasParaDia>[0]>) => metasParaDia({ metas: conEnt, modo: "por_tipo_dia", umbral: 0, quemadasDelDia: 300, hayEntrenamiento: true, ...o });
+
+  it("usa metas de entrenamiento en día con entrenamiento", () => {
+    const r = dia({});
+    expect(r.esDiaEntreno).toBe(true);
+    expect(r.metasEfectivas.calorias).toBe(1700);
+    expect(r.metasEfectivas.grasas_saturadas_g).toBe(20); // límites opcionales compartidos
+  });
+  it("sin entrenamiento usa descanso", () => {
+    expect(dia({ hayEntrenamiento: false, quemadasDelDia: 0 }).metasEfectivas.calorias).toBe(1500);
+  });
+  it("caminata de 100 kcal con umbral 150 no activa el día", () => {
+    expect(dia({ umbral: 150, quemadasDelDia: 100 }).esDiaEntreno).toBe(false);
+    expect(dia({ umbral: 150, quemadasDelDia: 150 }).esDiaEntreno).toBe(true);
+  });
+  it("en 'fija' y 'sumar_quemadas' nunca es día de entrenamiento", () => {
+    expect(dia({ modo: "fija" }).metasEfectivas.calorias).toBe(1500);
+    expect(dia({ modo: "sumar_quemadas" }).esDiaEntreno).toBe(false);
+  });
+  it("si faltan metas de entrenamiento usa descanso y avisa", () => {
+    const r = metasParaDia({ metas: base, modo: "por_tipo_dia", umbral: 0, quemadasDelDia: 300, hayEntrenamiento: true });
+    expect(r.metasEfectivas.calorias).toBe(1500);
+    expect(r.faltanEntreno).toBe(true);
+  });
+  it("cambiar a 'fija' y volver conserva las metas de entrenamiento", () => {
+    expect(dia({ modo: "fija" }).metasEfectivas.calorias).toBe(1500);
+    expect(dia({ modo: "por_tipo_dia" }).metasEfectivas.calorias).toBe(1700);
+  });
+  it("migración de sumar_quemadas a modo", () => {
+    expect(modoDesdeSumar(true)).toBe("sumar_quemadas");
+    expect(modoDesdeSumar(false)).toBe("fija");
+  });
+  it("balanceDia en por_tipo_dia no suma quemadas", () => {
+    expect(balanceDia({ consumidas: 1000, limite: 1700, quemadas: 400, modo: "por_tipo_dia" }).restante).toBe(700);
+    expect(balanceDia({ consumidas: 1000, limite: 1700, quemadas: 400, modo: "sumar_quemadas" }).restante).toBe(1100);
+    expect(balanceDia({ consumidas: 1000, limite: 1700, quemadas: 400, modo: "fija" }).restante).toBe(700);
+    expect(balanceDia({ consumidas: 850, limite: 1700, quemadas: 400, modo: "por_tipo_dia" }).progreso).toBe(0.5);
+  });
+  it("guardar una pestaña escribe solo sus columnas, nunca los límites opcionales", () => {
+    const pct = { proteinas: 30.1, carbohidratos: 45, grasas: 24.9 };
+    const e = filaMetasTipo("entreno", 1700, pct);
+    expect(Object.keys(e).sort()).toEqual(["calorias_entreno", "carbohidratos_g_entreno", "grasas_g_entreno", "pct_carbohidratos_entreno", "pct_grasas_entreno", "pct_proteinas_entreno", "proteinas_g_entreno"]);
+    const d = filaMetasTipo("descanso", 1500, pct);
+    expect(Object.keys(d).some((k) => k.endsWith("_entreno"))).toBe(false);
+    const ambas = { ...d, ...e };
+    expect(Object.keys(ambas)).toHaveLength(14);
+    for (const k of CAMPOS_OTROS_LIMITES) expect(k in ambas).toBe(false);
+  });
+  it("metas sugeridas (onboarding) solo tocan columnas de descanso", () => {
+    const f = filaMetasTipo("descanso", 1800, { proteinas: 26.7, carbohidratos: 45, grasas: 28.3 });
+    expect(Object.keys(f).some((k) => k.endsWith("_entreno"))).toBe(false);
+  });
+  it("128/191/47 g con 1.700 kcal da 30,1/45,0/24,9 % y conserva los gramos", () => {
+    const pct = pctDesdeGramos({ proteinas_g: 128, carbohidratos_g: 191, grasas_g: 47 });
+    expect(pct).toEqual({ proteinas: 30.1, carbohidratos: 45, grasas: 24.9 });
+    const f = filaMetasTipo("entreno", 1700, pct);
+    expect([f.proteinas_g_entreno, f.carbohidratos_g_entreno, f.grasas_g_entreno]).toEqual([128, 191, 47]);
+  });
+  it("entrenamiento a las 22:00 de Buenos Aires cuenta para ese día", () => {
+    const f = fechaBA(new Date("2026-11-09T01:00:00Z")); // 08/11 22:00 BA
+    expect(f).toBe("2026-11-08");
+    const q = quemadasPorFecha([{ fecha: f, calorias_quemadas: 300 }]);
+    expect(limitesPorDia(["2026-11-08", "2026-11-09"], conEnt, "por_tipo_dia", 0, q)).toEqual([1700, 1500]);
+    expect(esDiaEntrenamiento("por_tipo_dia", 0, q.get("2026-11-09") ?? 0, q.has("2026-11-09"))).toBe(false);
   });
 });
