@@ -92,6 +92,8 @@ function Perfil() {
   }
 
   const modo = modoValido(perfil.data?.modo_entrenamiento);
+  const [umbral, setUmbral] = useState(0);
+  useEffect(() => { if (perfil.data) setUmbral(perfil.data.umbral_entreno_kcal); }, [perfil.data]);
 
   async function salir() {
     await qc.cancelQueries();
@@ -151,7 +153,7 @@ function Perfil() {
         {modo === "por_tipo_dia" && (
           <div className="flex items-center gap-3 px-3 pb-2 pt-1">
             <Label className="flex-1 text-sm">Contar como día de entrenamiento desde</Label>
-            <NumberInput key={perfil.data?.umbral_entreno_kcal} value={perfil.data?.umbral_entreno_kcal ?? 0} onChange={(n) => guardarUmbral(n)} className="h-10 w-20 text-right" aria-label="Umbral de kcal quemadas" />
+            <NumberInput value={umbral} onChange={setUmbral} onBlur={() => guardarUmbral(umbral)} className="h-10 w-20 text-right" aria-label="Umbral de kcal quemadas" />
             <span className="text-sm text-muted-foreground">kcal</span>
           </div>
         )}
