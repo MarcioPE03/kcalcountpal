@@ -42,6 +42,18 @@ Solo en el último modo aparece el campo "Contar como día de entrenamiento desd
 - La línea del límite en "Ingesta de calorías" pasa a ser escalonada: cada día muestra la meta de su tipo.
 - Los días se cuentan con la hora de Buenos Aires.
 
+## 8. Ajustes incorporados
+- **Guardado de las dos pestañas**:
+  - Si cambiaste Descanso y Entrenamiento, "Guardar ajustes" guarda las dos juntas: o se guarda todo, o no se guarda nada.
+  - Cada tipo de día se guarda completo: kcal, gramos y porcentajes. Los límites opcionales nunca se tocan.
+  - La pregunta "¿Salir sin guardar?" aparece si hay cambios en cualquiera de las dos pestañas.
+- **Recálculo del tipo de día**: Hoy, el detalle del día y Estadísticas se actualizan cuando:
+  - agregás, editás o borrás un entrenamiento;
+  - registrás varios desde Recientes o Favoritos;
+  - cambiás el modo o el umbral en Perfil.
+- **Onboarding y metas sugeridas**: escriben solo las metas de descanso. Nunca tocan las de entrenamiento.
+- **Cambio de modo sin pérdidas**: cambiar de modo cambia solo el modo. Las metas de entrenamiento y el umbral se conservan.
+
 ## Detalles técnicos
 - **Migración solo aditiva**:
   - `profiles.modo_entrenamiento`: texto con default `'sumar_quemadas'` y CHECK de los tres valores. Se completa desde `sumar_quemadas` (true → `'sumar_quemadas'`, false → `'fija'`).
@@ -54,6 +66,10 @@ Solo en el último modo aparece el campo "Contar como día de entrenamiento desd
   - `balanceDia` recibe `modo` en lugar del booleano.
   - Los gramos salen de `filaMacros`, con el sufijo de la pestaña.
 - **Guardado en `data.ts`**: `guardarMetasMacros(kcal, pct, tipo: 'descanso' | 'entreno')` actualiza solo las columnas de ese tipo.
+- **Guardado de ambos tipos**: cuando cambian las dos pestañas, se hace un único `update` en `metas_diarias` con las columnas de los dos tipos (atómico). Lo arma una función pura `filaMetasTipo(tipo, kcal, pct)`, que se puede testear.
+- **Onboarding**: `onboarding.tsx` y las metas sugeridas llaman a `guardarMetasMacros(..., 'descanso')`.
+- **Invalidación**: un helper `invalidarDia()` invalida metas, día, entrenamientos y estadísticas. Se usa en todas las mutaciones de entrenamientos y en el guardado del modo y el umbral.
+- **Limpieza**: se actualizan todos los usos y tests de `balanceDia` a la firma con `modo`. Se busca con `rg` que nada siga escribiendo `sumar_quemadas`.
 - **Estadísticas**: una consulta liviana trae `entrenamientos(fecha, calorias_quemadas)` del período y suma por fecha.
 - **Tests**:
   - `metasParaDia` en los tres modos, con umbral.
@@ -64,4 +80,7 @@ Solo en el último modo aparece el campo "Contar como día de entrenamiento desd
   - 128/191/47 g con 1.700 kcal da 30,1/45,0/24,9 % y conserva esos gramos al reabrir.
   - Una caminata de 100 kcal con umbral 150 no cuenta como día de entrenamiento.
   - Un entrenamiento a las 22:00 cuenta para el día correcto.
+  - Guardar metas sugeridas no altera las metas de entrenamiento.
+  - Pasar a 'fija' y volver a 'por_tipo_dia' conserva las metas de entrenamiento y el umbral.
+  - La fila combinada de las dos pestañas incluye las columnas de ambos tipos y ninguna de los límites opcionales.
   - Verificación en la base: el CHECK rechaza porcentajes que no suman 100,0 y columnas parciales.
