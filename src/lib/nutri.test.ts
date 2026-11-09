@@ -216,7 +216,7 @@ describe("metas en porcentajes", () => {
   });
 });
 
-import { esDiaEntrenamiento, filaMetasTipo, limitesPorDia, metasParaDia, modoDesdeSumar, quemadasPorFecha } from "./nutri";
+import { CAMPOS_OTROS_LIMITES, esDiaEntrenamiento, filaMetasTipo, limitesPorDia, metasParaDia, modoDesdeSumar, quemadasPorFecha } from "./nutri";
 import { fechaLocal as fechaBA } from "./nutri";
 
 describe("metas por tipo de día", () => {
