@@ -80,7 +80,7 @@ function useBorrador(ini: Inicial) {
   const snapshot = useRef<PctMacros | null>(null);
   const kcalNum = parseNum(kcalTxt);
   const kcalOk = kcalMetaValida(kcalNum);
-  const dirty = !inicial.guardado || inicial.derivado || kcalNum !== inicial.kcal || !iguales(pct, inicial.pct);
+  const dirty = !inicial.guardado || kcalNum !== inicial.kcal || !iguales(pct, inicial.pct);
   return { inicial, kcalTxt, setKcalTxt, kcal, setKcal, pct, setPct, snapshot, kcalNum, kcalOk, dirty, valido: kcalOk && sumaPct(pct) === 100 };
 }
 type Borrador = ReturnType<typeof useBorrador>;
