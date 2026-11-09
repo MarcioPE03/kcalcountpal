@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  invalidarDia,
   actualizarEntrenamiento, borrarEntrenamiento, entrenamientosDiaQuery, favoritosEntrenamientosQuery, guardarFavoritoEntrenamiento,
   quitarFavoritoEntrenamiento, type Entrenamiento,
 } from "@/lib/data";
