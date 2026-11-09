@@ -139,7 +139,7 @@ function Perfil() {
       </Collapsible>
 
       <h2 className="mb-2 mt-6 px-1 text-sm font-semibold text-muted-foreground">Entrenamientos</h2>
-      <Card className="space-y-2 p-2" role="radiogroup" aria-label="Modo de entrenamiento">
+      <Card className="space-y-2 p-2"><div role="radiogroup" aria-label="Modo de entrenamiento" className="space-y-2">
         {MODOS.map((o) => {
           const activo = modo === o.v;
           return (
@@ -150,6 +150,7 @@ function Perfil() {
             </button>
           );
         })}
+        </div>
         {modo === "por_tipo_dia" && (
           <div className="flex items-center gap-3 px-3 pb-2 pt-1">
             <Label className="flex-1 text-sm">Contar como día de entrenamiento desde</Label>

@@ -228,7 +228,7 @@ describe("metas por tipo de día", () => {
     const r = dia({});
     expect(r.esDiaEntreno).toBe(true);
     expect(r.metasEfectivas.calorias).toBe(1700);
-    expect(r.metasEfectivas.grasas_saturadas_g).toBe(20); // límites opcionales compartidos
+    expect((r.metasEfectivas as typeof conEnt).grasas_saturadas_g).toBe(20); // límites opcionales compartidos
   });
   it("sin entrenamiento usa descanso", () => {
     expect(dia({ hayEntrenamiento: false, quemadasDelDia: 0 }).metasEfectivas.calorias).toBe(1500);
@@ -278,7 +278,7 @@ describe("metas por tipo de día", () => {
     const pct = pctDesdeGramos({ proteinas_g: 128, carbohidratos_g: 191, grasas_g: 47 });
     expect(pct).toEqual({ proteinas: 30.1, carbohidratos: 45, grasas: 24.9 });
     const f = filaMetasTipo("entreno", 1700, pct);
-    expect([f.proteinas_g_entreno, f.carbohidratos_g_entreno, f.grasas_g_entreno]).toEqual([128, 191, 47]);
+    expect([f["proteinas_g_entreno"], f["carbohidratos_g_entreno"], f["grasas_g_entreno"]]).toEqual([128, 191, 47]);
   });
   it("entrenamiento a las 22:00 de Buenos Aires cuenta para ese día", () => {
     const f = fechaBA(new Date("2026-11-09T01:00:00Z")); // 08/11 22:00 BA

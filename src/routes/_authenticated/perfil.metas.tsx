@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/perfil/metas")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { tipo?: "descanso" | "entreno" } => (s.tipo === "entreno" ? { tipo: "entreno" } : {}),
+  validateSearch: (s: Record<string, unknown>): { tipo?: "descanso" | "entreno" } => (s["tipo"] === "entreno" ? { tipo: "entreno" } : {}),
   component: AjustarMetas,
 });
 
