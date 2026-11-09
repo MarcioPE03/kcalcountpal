@@ -702,6 +702,11 @@ export function filaMacros(kcal: number, pct: PctMacros) {
 }
 
 export const CAMPOS_OTROS_LIMITES = ["grasas_saturadas_g", "fibra_g", "azucares_g", "sodio_mg"] as const;
+/** Per-day kcal goal for a list of local dates (step line in Estadísticas). */
+export function limitesPorDia<T extends MetasBase>(dias: string[], metas: T, modo: ModoEntreno, umbral: number, quemadas: Map<string, number>) {
+  return dias.map((f) => Number(metasParaDia({ metas, modo, umbral, quemadasDelDia: quemadas.get(f) ?? 0, hayEntrenamiento: quemadas.has(f) }).metasEfectivas.calorias));
+}
+
 export type TipoMetas = "descanso" | "entreno";
 /** Columns for one goal type (kcal + grams + percentages); never touches optional limits. */
 export function filaMetasTipo(tipo: TipoMetas, kcal: number, pct: PctMacros): Record<string, number> {
