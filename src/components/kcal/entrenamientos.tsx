@@ -82,7 +82,7 @@ export function EntrenamientoDialog({ onOpenChange, entrenamiento }: {
     setDur(entrenamiento?.duracion_min ?? 0);
   }, [open, entrenamiento]);
 
-  const refrescar = () => qc.invalidateQueries({ queryKey: ["entrenamientos"] });
+  const refrescar = () => invalidarDia(qc);
 
   async function guardar() {
     if (!nombre.trim()) { toast.error("Poné un nombre al entrenamiento."); return; }
