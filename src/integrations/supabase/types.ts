@@ -240,14 +240,21 @@ export type Database = {
         Row: {
           azucares_g: number | null
           calorias: number
+          calorias_entreno: number | null
           carbohidratos_g: number
+          carbohidratos_g_entreno: number | null
           fibra_g: number | null
           grasas_g: number
+          grasas_g_entreno: number | null
           grasas_saturadas_g: number | null
           pct_carbohidratos: number | null
+          pct_carbohidratos_entreno: number | null
           pct_grasas: number | null
+          pct_grasas_entreno: number | null
           pct_proteinas: number | null
+          pct_proteinas_entreno: number | null
           proteinas_g: number
+          proteinas_g_entreno: number | null
           sodio_mg: number | null
           updated_at: string
           user_id: string
@@ -255,14 +262,21 @@ export type Database = {
         Insert: {
           azucares_g?: number | null
           calorias?: number
+          calorias_entreno?: number | null
           carbohidratos_g?: number
+          carbohidratos_g_entreno?: number | null
           fibra_g?: number | null
           grasas_g?: number
+          grasas_g_entreno?: number | null
           grasas_saturadas_g?: number | null
           pct_carbohidratos?: number | null
+          pct_carbohidratos_entreno?: number | null
           pct_grasas?: number | null
+          pct_grasas_entreno?: number | null
           pct_proteinas?: number | null
+          pct_proteinas_entreno?: number | null
           proteinas_g?: number
+          proteinas_g_entreno?: number | null
           sodio_mg?: number | null
           updated_at?: string
           user_id: string
@@ -270,14 +284,21 @@ export type Database = {
         Update: {
           azucares_g?: number | null
           calorias?: number
+          calorias_entreno?: number | null
           carbohidratos_g?: number
+          carbohidratos_g_entreno?: number | null
           fibra_g?: number | null
           grasas_g?: number
+          grasas_g_entreno?: number | null
           grasas_saturadas_g?: number | null
           pct_carbohidratos?: number | null
+          pct_carbohidratos_entreno?: number | null
           pct_grasas?: number | null
+          pct_grasas_entreno?: number | null
           pct_proteinas?: number | null
+          pct_proteinas_entreno?: number | null
           proteinas_g?: number
+          proteinas_g_entreno?: number | null
           sodio_mg?: number | null
           updated_at?: string
           user_id?: string
@@ -388,6 +409,7 @@ export type Database = {
           id: string
           limite_analisis_diario: number
           limite_categorias_diario: number
+          modo_entrenamiento: string
           nivel_actividad: string | null
           nombre: string | null
           objetivo: string | null
@@ -396,6 +418,7 @@ export type Database = {
           peso_meta_kg: number | null
           sexo: string | null
           sumar_quemadas: boolean
+          umbral_entreno_kcal: number
         }
         Insert: {
           altura_cm?: number | null
@@ -404,6 +427,7 @@ export type Database = {
           id: string
           limite_analisis_diario?: number
           limite_categorias_diario?: number
+          modo_entrenamiento?: string
           nivel_actividad?: string | null
           nombre?: string | null
           objetivo?: string | null
@@ -412,6 +436,7 @@ export type Database = {
           peso_meta_kg?: number | null
           sexo?: string | null
           sumar_quemadas?: boolean
+          umbral_entreno_kcal?: number
         }
         Update: {
           altura_cm?: number | null
@@ -420,6 +445,7 @@ export type Database = {
           id?: string
           limite_analisis_diario?: number
           limite_categorias_diario?: number
+          modo_entrenamiento?: string
           nivel_actividad?: string | null
           nombre?: string | null
           objetivo?: string | null
@@ -428,6 +454,7 @@ export type Database = {
           peso_meta_kg?: number | null
           sexo?: string | null
           sumar_quemadas?: boolean
+          umbral_entreno_kcal?: number
         }
         Relationships: []
       }

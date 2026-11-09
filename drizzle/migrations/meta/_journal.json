@@ -71,6 +71,13 @@
       "when": 1794174957747,
       "tag": "0009_metas_porcentajes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794182731820,
+      "tag": "0010_metas_entrenamiento",
+      "breakpoints": true
     }
   ]
 }
