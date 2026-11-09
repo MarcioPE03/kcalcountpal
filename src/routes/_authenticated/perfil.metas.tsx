@@ -1,7 +1,7 @@
 import { createFileRoute, useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Info, Loader2, Minus, Plus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/kcal/layout";
 import { MACRO_LABEL, MacroRing } from "@/components/kcal/macro-ring";
@@ -12,11 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { guardarMetasMacros, invalidarMetas, metasQuery } from "@/lib/data";
+import { guardarMetasTipos, invalidarMetas, metasQuery, perfilQuery } from "@/lib/data";
 import {
   KCAL_META_MAX, KCAL_META_MIN, MACRO_KEYS, PCT_MAX, PCT_MIN, PRESETS_PCT, fmt, formatPct, gramosDesdePct,
   kcalMacro, kcalMetaValida, pasoKcal, pctDeMetas, pctDesdeGramosInput, redistribuirPct, sumaPct,
-  type MacroKey, type PctMacros,
+  metasEntreno, modoValido, type MacroKey, type PctMacros, type TipoMetas,
 } from "@/lib/nutri";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/perfil/metas")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { tipo?: "descanso" | "entreno" } => (s["tipo"] === "entreno" ? { tipo: "entreno" } : {}),
   component: AjustarMetas,
 });
 
@@ -48,43 +49,153 @@ const iguales = (a: PctMacros, b: PctMacros) => MACRO_KEYS.every((k) => a[k] ===
 
 function AjustarMetas() {
   const metas = useQuery(metasQuery());
-  if (!metas.data) {
+  const perfil = useQuery(perfilQuery());
+  if (!metas.data || !perfil.data) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </main>
     );
   }
-  const { pct, derivado } = pctDeMetas(metas.data);
-  return <Editor inicialKcal={Number(metas.data.calorias)} inicialPct={pct} derivado={derivado} />;
+  const desc = pctDeMetas(metas.data);
+  const ent = metasEntreno(metas.data);
+  const entPct = ent ? pctDeMetas(ent) : null;
+  return (
+    <Editor
+      descanso={{ kcal: Number(metas.data.calorias), pct: desc.pct, derivado: desc.derivado, guardado: true }}
+      entreno={ent && entPct ? { kcal: Number(ent.calorias), pct: entPct.pct, derivado: entPct.derivado, guardado: true } : { kcal: Number(metas.data.calorias), pct: desc.pct, derivado: false, guardado: false }}
+      conEntreno={modoValido(perfil.data.modo_entrenamiento) === "por_tipo_dia"}
+    />
+  );
 }
 
-function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; inicialPct: PctMacros; derivado: boolean }) {
+type Inicial = { kcal: number; pct: PctMacros; derivado: boolean; guardado: boolean };
+
+/** Independent draft for one goal type. A training draft that was never saved counts as dirty. */
+function useBorrador(ini: Inicial) {
+  const [inicial] = useState(ini);
+  const [kcalTxt, setKcalTxt] = useState(String(ini.kcal));
+  const [kcal, setKcal] = useState(ini.kcal);
+  const [pct, setPct] = useState<PctMacros>(ini.pct);
+  const snapshot = useRef<PctMacros | null>(null);
+  const kcalNum = parseNum(kcalTxt);
+  const kcalOk = kcalMetaValida(kcalNum);
+  const dirty = !inicial.guardado || kcalNum !== inicial.kcal || !iguales(pct, inicial.pct);
+  return { inicial, kcalTxt, setKcalTxt, kcal, setKcal, pct, setPct, snapshot, kcalNum, kcalOk, dirty, valido: kcalOk && sumaPct(pct) === 100 };
+}
+type Borrador = ReturnType<typeof useBorrador>;
+
+function Editor({ descanso, entreno, conEntreno }: { descanso: Inicial; entreno: Inicial; conEntreno: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const router = useRouter();
-  const [inicial] = useState({ kcal: inicialKcal, pct: inicialPct });
-  const [kcalTxt, setKcalTxt] = useState(String(inicialKcal));
-  const [kcal, setKcal] = useState(inicialKcal); // last valid value
-  const [pct, setPct] = useState<PctMacros>(inicialPct);
+  const { tipo: tipoUrl } = Route.useSearch();
+  const [tab, setTab] = useState<TipoMetas>(conEntreno && tipoUrl === "entreno" ? "entreno" : "descanso");
+  const bD = useBorrador(descanso);
+  const bE = useBorrador(entreno);
   const [guardando, setGuardando] = useState(false);
-  const snapshot = useRef<PctMacros | null>(null);
   const guardadoOk = useRef(false);
-
-  const kcalNum = parseNum(kcalTxt);
-  const kcalOk = kcalMetaValida(kcalNum);
-  const dirty = kcalNum !== inicial.kcal || !iguales(pct, inicial.pct);
-  const gramos = useMemo(() => {
-    const g = gramosDesdePct(kcal, pct);
-    return { proteinas: g.proteinas_g, carbohidratos: g.carbohidratos_g, grasas: g.grasas_g };
-  }, [kcal, pct]);
-  const suma = sumaPct(pct);
+  // Training draft only matters when the mode uses it.
+  const cambios = [bD.dirty ? "descanso" : null, conEntreno && bE.dirty ? "entreno" : null].filter(Boolean) as TipoMetas[];
+  const dirty = cambios.length > 0;
+  const b = tab === "entreno" ? bE : bD;
+  const todoValido = cambios.every((t) => (t === "entreno" ? bE : bD).valido);
 
   const blocker = useBlocker({
     shouldBlockFn: () => dirty && !guardadoOk.current,
     enableBeforeUnload: () => dirty && !guardadoOk.current,
     withResolver: true,
   });
+
+  async function guardar() {
+    if (!todoValido || !dirty) return;
+    setGuardando(true);
+    try {
+      await guardarMetasTipos(cambios.map((t) => { const x = t === "entreno" ? bE : bD; return { tipo: t, kcal: x.kcalNum, pct: x.pct }; }));
+      guardadoOk.current = true;
+      await invalidarMetas(qc);
+      toast.success("Ajustes guardados");
+      navigate({ to: "/perfil" });
+    } catch {
+      toast.error("No se pudieron guardar los ajustes.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-md px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+7rem)]">
+      <header className="mb-5 flex items-center gap-2">
+        <button onClick={() => (window.history.length > 1 ? router.history.back() : navigate({ to: "/perfil" }))} className="-ml-2 rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Volver">
+          <ArrowLeft className="size-5" />
+        </button>
+        <h1 className="flex-1 text-xl font-bold">Ajustar calorías y macros</h1>
+      </header>
+
+      {conEntreno && (
+        <div className="mb-4 flex rounded-full bg-muted p-1" role="tablist">
+          {(["descanso", "entreno"] as TipoMetas[]).map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+              className={cn("flex-1 rounded-full py-2 text-sm font-semibold", tab === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
+              {t === "descanso" ? "Descanso" : "Entrenamiento"}{(t === "entreno" ? bE : bD).dirty ? " •" : ""}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === "entreno" && !entreno.guardado && (
+        <div className="mb-4 flex gap-2 rounded-2xl bg-muted px-4 py-3 text-sm">
+          <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          <p>Copiamos tus metas de descanso como punto de partida. Ajustalas y guardá.</p>
+        </div>
+      )}
+      {tab === "entreno" && bE.kcalOk && bD.kcalOk && bE.kcalNum < bD.kcalNum && (
+        <p className="mb-4 rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">Tus calorías de entrenamiento quedaron por debajo de las de descanso. ¿Es lo que querés?</p>
+      )}
+
+      <Panel key={tab} b={b} />
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur">
+        <div className="mx-auto flex max-w-md gap-2">
+          <Button variant="ghost" className="rounded-full" onClick={() => restablecer(b)} disabled={guardando || !b.dirty}>
+            Restablecer
+          </Button>
+          <Button className="flex-1 rounded-full" onClick={guardar} disabled={guardando || !dirty || !todoValido}>
+            {guardando && <Loader2 className="size-4 animate-spin" />} Guardar ajustes
+          </Button>
+        </div>
+      </div>
+
+      <AlertDialog open={blocker.status === "blocked"}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
+            <AlertDialogDescription>Vas a perder los cambios que hiciste en tus calorías y macros.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>Seguir editando</AlertDialogCancel>
+            <AlertDialogAction onClick={() => blocker.proceed?.()}>Salir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </main>
+  );
+}
+
+function restablecer(b: Borrador) {
+  b.snapshot.current = null;
+  b.setKcalTxt(String(b.inicial.kcal));
+  b.setKcal(b.inicial.kcal);
+  b.setPct(b.inicial.pct);
+}
+
+function Panel({ b }: { b: Borrador }) {
+  const { kcalTxt, setKcalTxt, kcal, setKcal, pct, setPct, snapshot, kcalNum, kcalOk } = b;
+  const gramos = useMemo(() => {
+    const g = gramosDesdePct(kcal, pct);
+    return { proteinas: g.proteinas_g, carbohidratos: g.carbohidratos_g, grasas: g.grasas_g };
+  }, [kcal, pct]);
+  const suma = sumaPct(pct);
 
   function cambiarKcalTxt(t: string) {
     const limpio = t.replace(/[^0-9]/g, "").slice(0, 5);
@@ -114,47 +225,15 @@ function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; in
     if (ajustado) toast.message(`Ajustamos ${MACRO_LABEL[k].toLowerCase()} al límite de ${nuevo === PCT_MAX ? PCT_MAX : PCT_MIN} %.`);
     setPct(redistribuirPct(pct, k, nuevo));
   }
-  function restablecer() {
-    snapshot.current = null;
-    setKcalTxt(String(inicial.kcal));
-    setKcal(inicial.kcal);
-    setPct(inicial.pct);
-  }
-
-  async function guardar() {
-    if (!kcalOk) return;
-    setGuardando(true);
-    try {
-      await guardarMetasMacros(kcalNum, pct);
-      guardadoOk.current = true;
-      await invalidarMetas(qc);
-      toast.success("Ajustes guardados");
-      navigate({ to: "/perfil" });
-    } catch {
-      toast.error("No se pudieron guardar los ajustes.");
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  useEffect(() => () => { snapshot.current = null; }, []);
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+7rem)]">
-      <header className="mb-5 flex items-center gap-2">
-        <button onClick={() => (window.history.length > 1 ? router.history.back() : navigate({ to: "/perfil" }))} className="-ml-2 rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Volver">
-          <ArrowLeft className="size-5" />
-        </button>
-        <h1 className="flex-1 text-xl font-bold">Ajustar calorías y macros</h1>
-      </header>
-
-      {derivado && (
+    <>
+      {b.inicial.derivado && b.inicial.guardado && (
         <div className="mb-4 flex gap-2 rounded-2xl bg-muted px-4 py-3 text-sm">
           <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           <p>Ajustamos los porcentajes para que coincidan con tus calorías. Guardá para confirmar.</p>
         </div>
       )}
-
       <Card>
         <p className="text-sm font-medium text-muted-foreground">Límite diario de calorías</p>
         <div className="mt-3 flex items-center justify-center gap-3">
@@ -241,30 +320,7 @@ function Editor({ inicialKcal, inicialPct, derivado }: { inicialKcal: number; in
         </div>
       </Card>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur">
-        <div className="mx-auto flex max-w-md gap-2">
-          <Button variant="ghost" className="rounded-full" onClick={restablecer} disabled={guardando || !dirty}>
-            Restablecer
-          </Button>
-          <Button className="flex-1 rounded-full" onClick={guardar} disabled={guardando || !kcalOk || suma !== 100}>
-            {guardando && <Loader2 className="size-4 animate-spin" />} Guardar ajustes
-          </Button>
-        </div>
-      </div>
-
-      <AlertDialog open={blocker.status === "blocked"}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
-            <AlertDialogDescription>Vas a perder los cambios que hiciste en tus calorías y macros.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => blocker.reset?.()}>Seguir editando</AlertDialogCancel>
-            <AlertDialogAction onClick={() => blocker.proceed?.()}>Salir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </main>
+    </>
   );
 }
 

@@ -9,9 +9,10 @@ import { SelectorFecha } from "@/components/kcal/selector-fecha";
 import { Flame, Utensils } from "lucide-react";
 import { MealRow } from "@/components/kcal/meal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { comidasDiaQuery, entrenamientosDiaQuery, metasQuery, perfilQuery, totalDia, totalQuemadas } from "@/lib/data";
+import { comidasDiaQuery, entrenamientosDiaQuery, perfilQuery, totalDia } from "@/lib/data";
 import { balanceDia, fechaLocal, ordenarComidas, fmt, fmtFechaCorta, sumarDias, tituloLista } from "@/lib/nutri";
 import { useFechaSeleccionada } from "@/lib/stores";
+import { useMetasDia } from "@/lib/use-metas-dia";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -30,7 +31,6 @@ function Hoy() {
   const hoy = fechaLocal();
   const navigate = useNavigate();
   const perfil = useQuery(perfilQuery());
-  const metas = useQuery(metasQuery());
   const comidas = useQuery(comidasDiaQuery(fecha));
   const entrenamientos = useQuery(entrenamientosDiaQuery(fecha));
   const [editar, setEditar] = useState<NonNullable<typeof entrenamientos.data>[number] | null>(null);
@@ -40,9 +40,11 @@ function Hoy() {
   }, [perfil.data, navigate]);
 
   const t = totalDia(comidas.data ?? []);
-  const m = metas.data;
-  const quemadas = totalQuemadas(entrenamientos.data ?? []);
-  const balance = m ? balanceDia({ consumidas: t.calorias, limite: m.calorias, quemadas, sumarQuemadas: perfil.data?.sumar_quemadas ?? true }) : null;
+  const md = useMetasDia(fecha);
+  const listo = md.listo && !!comidas.data;
+  const m = listo ? md.metas : null;
+  const quemadas = md.quemadas;
+  const balance = m ? balanceDia({ consumidas: t.calorias, limite: Number(m.calorias), quemadas, modo: md.modo }) : null;
   const etiqueta = fecha === hoy ? "Hoy" : fecha === sumarDias(hoy, -1) ? "Ayer" : fmtFechaCorta(fecha);
 
   return (
@@ -79,7 +81,10 @@ function Hoy() {
               <p className="text-[11px] font-semibold text-white/90">Consumidas</p>
             </div>
             {balance ? (
-              <CalorieRing {...balance} />
+              <div className="flex flex-col items-center">
+                <CalorieRing {...balance} />
+                {md.esDiaEntreno && <span className="mt-1 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-shadow-top">Día de entrenamiento</span>}
+              </div>
             ) : (
               <Skeleton className="size-[168px] rounded-full bg-white/20" />
             )}
@@ -102,6 +107,9 @@ function Hoy() {
           <MacroColumna label="Carbos" valor={t.carbohidratos} meta={m ? Number(m.carbohidratos_g) : null} color="carbs" />
           <MacroColumna label="Grasas" valor={t.grasas} meta={m ? Number(m.grasas_g) : null} color="fat" />
         </div>
+        {listo && md.faltanEntreno && md.esDiaEntreno && (
+          <Link to="/perfil/metas" search={{ tipo: "entreno" }} className="mt-3 block text-center text-xs font-medium text-primary underline underline-offset-2">Configurá tus metas de entrenamiento</Link>
+        )}
         <Link to="/dia/$fecha" params={{ fecha }} className="mt-4 flex items-center justify-center gap-1 text-sm font-medium text-primary">
           Ver todos los nutrientes <Arrow className="size-4" />
         </Link>

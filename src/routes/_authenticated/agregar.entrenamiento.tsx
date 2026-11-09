@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  invalidarDia,
   entrenamientosRecientesQuery, favoritosEntrenamientosQuery, guardarEntrenamiento, guardarFavoritoEntrenamiento,
   guardarVariosEntrenamientos, quitarFavoritoEntrenamiento, renombrarFavoritoEntrenamiento, type FavoritoEntrenamiento,
 } from "@/lib/data";
@@ -99,7 +100,7 @@ function Entrenamientos() {
   const registrar = useMutation({
     mutationFn: () => guardarVariosEntrenamientos(filasEntrenamientoParaRegistrar(lista, fecha)),
     onSuccess: (n) => {
-      qc.invalidateQueries({ queryKey: ["entrenamientos"] });
+      invalidarDia(qc);
       toast.success(`${n} ${n === 1 ? "entrenamiento registrado" : "entrenamientos registrados"}`);
       navigate({ to: "/" });
     },
@@ -311,7 +312,7 @@ function Nuevo({ fecha, onDone }: { fecha: string; onDone: () => void }) {
       try { await guardarFavoritoEntrenamiento(datos); qc.invalidateQueries({ queryKey: ["favoritos-entrenamientos"] }); }
       catch { toast.warning("El entrenamiento se guardó, pero no se pudo agregar a favoritos."); }
     }
-    await qc.invalidateQueries({ queryKey: ["entrenamientos"] });
+    invalidarDia(qc);
     toast.success("Entrenamiento agregado");
     onDone();
   }

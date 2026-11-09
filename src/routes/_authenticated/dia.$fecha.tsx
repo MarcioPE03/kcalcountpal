@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, Page, PageHeader } from "@/components/kcal/layout";
 import { MacroBar } from "@/components/kcal/progress";
-import { comidasDiaQuery, entrenamientosDiaQuery, metasQuery, totalDia, totalQuemadas } from "@/lib/data";
+import { comidasDiaQuery, entrenamientosDiaQuery, totalDia, totalQuemadas } from "@/lib/data";
+import { useMetasDia } from "@/lib/use-metas-dia";
 import { EntrenamientoDialog, WorkoutRow } from "@/components/kcal/entrenamientos";
 import { useState } from "react";
 import { NUTRIENTES, NUTRIENTE_LABEL, NUTRIENTE_UNIDAD, fmt, fmtFechaCorta, type NutrienteKey } from "@/lib/nutri";
@@ -27,11 +28,11 @@ const COLOR: Record<NutrienteKey, "primary" | "protein" | "carbs" | "fat" | "acc
 function Dia() {
   const { fecha } = Route.useParams();
   const comidas = useQuery(comidasDiaQuery(fecha));
-  const metas = useQuery(metasQuery());
+  const md = useMetasDia(fecha);
   const entrenamientos = useQuery(entrenamientosDiaQuery(fecha));
   const [editar, setEditar] = useState<NonNullable<typeof entrenamientos.data>[number] | null>(null);
   const t = totalDia(comidas.data ?? []);
-  const m = metas.data;
+  const m = md.listo && comidas.data ? md.metas : null;
   const meta: Record<NutrienteKey, number | null> = {
     calorias: m?.calorias ?? null,
     proteinas: m ? Number(m.proteinas_g) : null,
@@ -46,6 +47,7 @@ function Dia() {
     <Page>
       <PageHeader title="Nutrientes" back />
       <p className="-mt-3 mb-4 text-sm capitalize text-muted-foreground">{fmtFechaCorta(fecha)} · {comidas.data?.length ?? 0} comidas</p>
+      {md.esDiaEntreno && <p className="-mt-2 mb-3 inline-block rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary">Día de entrenamiento</p>}
       <Card className="space-y-5">
         {NUTRIENTES.map((k) => (
           <MacroBar key={k} label={NUTRIENTE_LABEL[k]} valor={t[k]} meta={meta[k]} unidad={NUTRIENTE_UNIDAD[k]} color={COLOR[k]} />

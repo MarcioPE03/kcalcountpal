@@ -389,10 +389,17 @@ export function filaProductoPropio(
 }
 
 /** Single writer for kcal + macro grams + percentages (adjust screen, onboarding, suggestions). */
-export async function guardarMetasMacros(kcal: number, pct: import("./nutri").PctMacros) {
-  const { filaMacros } = await import("./nutri");
+/** Writes kcal+grams+percentages of one goal type only (rest by default). */
+export async function guardarMetasMacros(kcal: number, pct: import("./nutri").PctMacros, tipo: import("./nutri").TipoMetas = "descanso") {
+  return guardarMetasTipos([{ tipo, kcal, pct }]);
+}
+
+/** Saves one or both goal types in a single update (all or nothing); never touches optional limits. */
+export async function guardarMetasTipos(cambios: { tipo: import("./nutri").TipoMetas; kcal: number; pct: import("./nutri").PctMacros }[]) {
+  const { filaMetasTipo } = await import("./nutri");
+  if (!cambios.length) return;
   const user_id = await uid();
-  const fila = { ...filaMacros(kcal, pct), updated_at: new Date().toISOString() };
+  const fila = Object.assign({ updated_at: new Date().toISOString() }, ...cambios.map((c) => filaMetasTipo(c.tipo, c.kcal, c.pct)));
   const { data, error } = await supabase.from("metas_diarias").update(fila).eq("user_id", user_id).select("user_id");
   if (error) throw error;
   if (!data?.length) {
@@ -400,6 +407,28 @@ export async function guardarMetasMacros(kcal: number, pct: import("./nutri").Pc
     if (e2) throw e2;
   }
 }
+
+/** Changes only the training mode / threshold on the profile (training goals are kept). */
+export async function guardarModoEntreno(v: { modo_entrenamiento?: import("./nutri").ModoEntreno; umbral_entreno_kcal?: number }) {
+  const user_id = await uid();
+  const { error } = await supabase.from("profiles").update(v).eq("id", user_id);
+  if (error) throw error;
+}
+
+/** Workouts, goals and every view derived from the day type (Hoy, day detail, Estadísticas). */
+export function invalidarDia(qc: import("@tanstack/react-query").QueryClient) {
+  for (const k of ["entrenamientos", "entrenamientos-rango", "metas", "perfil", "comidas", "comidas-rango"]) qc.invalidateQueries({ queryKey: [k] });
+}
+
+export const entrenamientosRangoQuery = (desde: string, hasta: string) =>
+  queryOptions({
+    queryKey: ["entrenamientos-rango", desde, hasta],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("entrenamientos").select("fecha, calorias_quemadas").gte("fecha", desde).lte("fecha", hasta);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
 /** Writes only the 4 optional limits. */
 export async function guardarOtrosLimites(v: Parameters<typeof import("./nutri").filaOtrosLimites>[0]) {

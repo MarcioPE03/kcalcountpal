@@ -339,16 +339,66 @@ export function caloriasRestantes(consumidas: number, limite: number) {
   return { restante: Math.max(0, restante), excedido: restante < 0 ? -restante : 0 };
 }
 
+export type ModoEntreno = "fija" | "sumar_quemadas" | "por_tipo_dia";
+export const MODOS_ENTRENO: ModoEntreno[] = ["fija", "sumar_quemadas", "por_tipo_dia"];
+/** Legacy toggle → mode (true → sumar_quemadas, false → fija). */
+export function modoDesdeSumar(sumar: boolean | null | undefined): ModoEntreno {
+  return sumar === false ? "fija" : "sumar_quemadas";
+}
+export function modoValido(m: unknown): ModoEntreno {
+  return MODOS_ENTRENO.includes(m as ModoEntreno) ? (m as ModoEntreno) : "sumar_quemadas";
+}
+
 /**
- * Day balance with workouts. Remaining = limit − eaten + burned (burned only if the toggle is on).
- * Ring progress = eaten / (limit + burned) when on, eaten / limit when off; capped at 1, safe for 0.
+ * Day balance with workouts. Burned kcal are added to the limit only in "sumar_quemadas";
+ * in "fija" and "por_tipo_dia" remaining = day goal − eaten. Ring progress capped at 1, safe for 0.
  */
-export function balanceDia({ consumidas, limite, quemadas, sumarQuemadas }: { consumidas: number; limite: number; quemadas: number; sumarQuemadas: boolean }) {
-  const extra = sumarQuemadas ? Math.max(0, quemadas) : 0;
+export function balanceDia({ consumidas, limite, quemadas, modo }: { consumidas: number; limite: number; quemadas: number; modo: ModoEntreno }) {
+  const extra = modo === "sumar_quemadas" ? Math.max(0, quemadas) : 0;
   const total = limite + extra;
   const { restante, excedido } = caloriasRestantes(consumidas, total);
   const progreso = total > 0 ? Math.min(Math.max(consumidas, 0) / total, 1) : consumidas > 0 ? 1 : 0;
   return { restante, excedido, progreso, leyenda: excedido > 0 ? "kcal de más" : "kcal restantes" };
+}
+
+export type MetasBase = {
+  calorias: number; proteinas_g: number; carbohidratos_g: number; grasas_g: number;
+  pct_proteinas?: number | null; pct_carbohidratos?: number | null; pct_grasas?: number | null;
+  calorias_entreno?: number | null; proteinas_g_entreno?: number | null; carbohidratos_g_entreno?: number | null; grasas_g_entreno?: number | null;
+  pct_proteinas_entreno?: number | null; pct_carbohidratos_entreno?: number | null; pct_grasas_entreno?: number | null;
+};
+
+/** Training-day goal set, or null when not configured (all-or-nothing in the DB). */
+export function metasEntreno<T extends MetasBase>(m: T): T | null {
+  if (m.calorias_entreno == null || m.proteinas_g_entreno == null || m.carbohidratos_g_entreno == null || m.grasas_g_entreno == null) return null;
+  return {
+    ...m,
+    calorias: Number(m.calorias_entreno), proteinas_g: Number(m.proteinas_g_entreno),
+    carbohidratos_g: Number(m.carbohidratos_g_entreno), grasas_g: Number(m.grasas_g_entreno),
+    pct_proteinas: m.pct_proteinas_entreno ?? null, pct_carbohidratos: m.pct_carbohidratos_entreno ?? null, pct_grasas: m.pct_grasas_entreno ?? null,
+  };
+}
+
+/** True when the day counts as a training day for goal purposes. */
+export function esDiaEntrenamiento(modo: ModoEntreno, umbral: number, quemadasDelDia: number, hayEntrenamiento: boolean) {
+  return modo === "por_tipo_dia" && hayEntrenamiento && quemadasDelDia >= Math.max(0, umbral || 0);
+}
+
+/**
+ * Effective goals for a day. Training goals apply only in "por_tipo_dia" on a training day;
+ * if they are not configured, rest goals are used and `faltanEntreno` tells the UI to warn.
+ */
+export function metasParaDia<T extends MetasBase>({ metas, modo, umbral, quemadasDelDia, hayEntrenamiento }: { metas: T; modo: ModoEntreno; umbral: number; quemadasDelDia: number; hayEntrenamiento: boolean }) {
+  const esDiaEntreno = esDiaEntrenamiento(modo, umbral, quemadasDelDia, hayEntrenamiento);
+  const ent = metasEntreno(metas);
+  return { metasEfectivas: esDiaEntreno && ent ? ent : metas, esDiaEntreno, faltanEntreno: modo === "por_tipo_dia" && !ent };
+}
+
+/** Burned kcal and workout presence per local date (rows already carry the local `fecha`). */
+export function quemadasPorFecha(filas: { fecha: string; calorias_quemadas: number | string }[]) {
+  const m = new Map<string, number>();
+  for (const f of filas) m.set(f.fecha, (m.get(f.fecha) ?? 0) + Number(f.calorias_quemadas || 0));
+  return m;
 }
 
 export const QUEMADAS_MIN = 1;
@@ -652,6 +702,19 @@ export function filaMacros(kcal: number, pct: PctMacros) {
 }
 
 export const CAMPOS_OTROS_LIMITES = ["grasas_saturadas_g", "fibra_g", "azucares_g", "sodio_mg"] as const;
+/** Per-day kcal goal for a list of local dates (step line in Estadísticas). */
+export function limitesPorDia<T extends MetasBase>(dias: string[], metas: T, modo: ModoEntreno, umbral: number, quemadas: Map<string, number>) {
+  return dias.map((f) => Number(metasParaDia({ metas, modo, umbral, quemadasDelDia: quemadas.get(f) ?? 0, hayEntrenamiento: quemadas.has(f) }).metasEfectivas.calorias));
+}
+
+export type TipoMetas = "descanso" | "entreno";
+/** Columns for one goal type (kcal + grams + percentages); never touches optional limits. */
+export function filaMetasTipo(tipo: TipoMetas, kcal: number, pct: PctMacros): Record<string, number> {
+  const f = filaMacros(kcal, pct);
+  if (tipo === "descanso") return f;
+  return Object.fromEntries(Object.entries(f).map(([k, v]) => [`${k}_entreno`, v]));
+}
+
 /** The only shape written for optional limits (0 / empty = not used → null). */
 export function filaOtrosLimites(v: Partial<Record<(typeof CAMPOS_OTROS_LIMITES)[number], number>>) {
   const o = {} as Record<(typeof CAMPOS_OTROS_LIMITES)[number], number | null>;

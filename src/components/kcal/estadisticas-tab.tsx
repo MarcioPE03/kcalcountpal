@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Bar, BarChart, Cell, Pie, PieChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, ComposedChart, Cell, Line, Pie, PieChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/kcal/layout";
-import { comidaANutrientes, comidasRangoQuery, metasQuery } from "@/lib/data";
+import { comidaANutrientes, comidasRangoQuery, entrenamientosRangoQuery, metasQuery, perfilQuery } from "@/lib/data";
 import {
   MOMENTOS, caloriasPorCategoria, fechaLocal, fmt, fmtFechaNum, macrosEscalados, moverPeriodo,
-  promedioDiario, rangoPeriodo, sumar, topCategorias, type Periodo,
+  limitesPorDia, modoValido, promedioDiario, quemadasPorFecha, rangoPeriodo, sumar, topCategorias, type Periodo,
 } from "@/lib/nutri";
 import { cn } from "@/lib/utils";
 
@@ -24,14 +24,20 @@ export function EstadisticasTab() {
   const { desde, hasta, dias } = rangoPeriodo(tipo, ref);
   const q = useQuery(comidasRangoQuery(desde, hasta));
   const metas = useQuery(metasQuery());
-  const limite = metas.data?.calorias ?? 2000;
+  const perfil = useQuery(perfilQuery());
+  const ents = useQuery(entrenamientosRangoQuery(desde, hasta));
+  const limites = metas.data
+    ? limitesPorDia(dias, metas.data, modoValido(perfil.data?.modo_entrenamiento), perfil.data?.umbral_entreno_kcal ?? 0, quemadasPorFecha(ents.data ?? []))
+    : dias.map(() => 2000);
+  const limite = Math.max(...limites);
+  const limMin = Math.min(...limites);
   const comidas = q.data ?? [];
   const mensual = tipo === "mes";
 
   const porDia = dias.map((f, i) => {
     const t = sumar(comidas.filter((c) => c.fecha === f).map(comidaANutrientes));
     const m = macrosEscalados(t);
-    return { f, etiqueta: mensual ? String(i + 1) : fmtFechaNum(f).slice(0, 5), calorias: t.calorias, ...m };
+    return { f, etiqueta: mensual ? String(i + 1) : fmtFechaNum(f).slice(0, 5), calorias: t.calorias, limite: limites[i], ...m };
   });
   const prom = promedioDiario(comidas.map((c) => ({ fecha: c.fecha, calorias: Number(c.calorias) })));
   const totalKcal = comidas.reduce((s, c) => s + Number(c.calorias), 0);
@@ -84,17 +90,17 @@ export function EstadisticasTab() {
       ) : (
         <>
           <Card>
-            <Titulo t="Ingesta de calorías" sub={`Límite ${fmt(limite)} kcal`} />
+            <Titulo t="Ingesta de calorías" sub={limMin === limite ? `Límite ${fmt(limite)} kcal` : `Límite ${fmt(limMin)}–${fmt(limite)} kcal según el día`} />
             <div className="mt-4 h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
+                <ComposedChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
                   <XAxis dataKey="etiqueta" {...(ticksMes ? { ticks: ticksMes } : {})} interval={0} tickLine={false} axisLine={false} tick={tick} />
                   <YAxis domain={[0, (max: number) => Math.ceil(Math.max(max, limite * 1.1) / 100) * 100]} tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
-                  <ReferenceLine y={limite} stroke="var(--accent)" strokeDasharray="4 4" />
                   <Bar dataKey="calorias" radius={[6, 6, 6, 6]} animationDuration={900}>
                     {porDia.map((d) => <Cell key={d.f} fill="var(--primary)" />)}
                   </Bar>
-                </BarChart>
+                  <Line dataKey="limite" type="step" stroke="var(--accent)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </Card>
@@ -113,13 +119,13 @@ export function EstadisticasTab() {
             <Titulo t="Ingesta nutricional" sub="kcal por macro" />
             <div className="mt-4 h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
+                <ComposedChart data={porDia} margin={{ left: -16, right: 4, top: 8 }}>
                   <XAxis dataKey="etiqueta" {...(ticksMes ? { ticks: ticksMes } : {})} interval={0} tickLine={false} axisLine={false} tick={tick} />
                   <YAxis tickLine={false} axisLine={false} tick={tick} tickFormatter={(n: number) => fmt(n)} />
                   <Bar dataKey="carbohidratos" stackId="m" fill="var(--carbs)" animationDuration={900} />
                   <Bar dataKey="proteinas" stackId="m" fill="var(--protein)" animationDuration={900} />
                   <Bar dataKey="grasas" stackId="m" fill="var(--fat)" radius={[6, 6, 0, 0]} animationDuration={900} />
-                </BarChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
             <Leyenda items={[
