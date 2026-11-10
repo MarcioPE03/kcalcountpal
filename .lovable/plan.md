@@ -37,3 +37,10 @@ No hay otros usos de la IA de Lovable en la app: todo pasa por un único archivo
 - Nuevo `src/lib/gemini.server.ts`: helper `llamarGemini({model, system, partes, schema})` con `fetch` a `generateContent` (`responseMimeType: application/json` + `responseSchema`), header `x-goog-api-key`; mapea errores a una clase con motivo para log. Las "edge functions" serán las server functions existentes (estándar de este proyecto).
 - `src/lib/ai.functions.ts`: reemplazar las 4 llamadas AI SDK y la transcripción por el helper; conservar `procesarRespuesta`, `aplicarCorreccion`, Zod, cupos y estados.
 - Quitar dependencia `@ai-sdk/openai` si queda sin uso.
+
+## Ajustes aprobados
+- Se usa solo tu clave de Gemini, no la IA integrada.
+- Si un modelo no existe: equivalente ESTABLE más barato, nunca "preview"; te aviso cuál quedó.
+- "Thinking" desactivado en todas las llamadas (`thinkingBudget: 0`; si un modelo no lo permite, el mínimo aceptado).
+- Dictado por voz con su propia constante `GEMINI_MODEL_TRANSCRIBE` (hoy flash-lite, se puede subir a gemini-2.5-flash).
+- `@ai-sdk/openai` se quita solo tras verificar que no queda ningún otro uso.
