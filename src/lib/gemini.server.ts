@@ -32,7 +32,9 @@ function limpiarSchema(s: unknown): unknown {
 export async function llamarGemini(opts: { model: string; system?: string; partes: Parte[]; schema?: z.ZodTypeAny }): Promise<string> {
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) throw new GeminiError("FALTA_GEMINI_API_KEY");
-  const generationConfig: Record<string, unknown> = { thinkingConfig: { thinkingBudget: 0 } };
+  // Thinking off (2.x) or at the minimum level (3.x models reject a zero budget).
+  const thinkingConfig = /^gemini-2\./.test(opts.model) ? { thinkingBudget: 0 } : { thinkingLevel: "minimal" };
+  const generationConfig: Record<string, unknown> = { thinkingConfig };
   if (opts.schema) {
     const { zodSchema } = await import("ai");
     generationConfig["responseMimeType"] = "application/json";
