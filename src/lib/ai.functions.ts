@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { RespuestaIA, procesarRespuesta, type AnalisisRespuesta } from "./analisis";
 import { MAX_ACLARACION, MAX_INGREDIENTES_CORRECCION, RespuestaCorreccionIA, aplicarCorreccion } from "./correccion";
 import type { Ingrediente } from "./nutri";
-import { AI_GATEWAY_URL, AI_MODEL, TRANSCRIBE_MODEL } from "./ai-model";
+import { GEMINI_MODEL_TEXT, GEMINI_MODEL_TRANSCRIBE, GEMINI_MODEL_VISION } from "./ai-model";
+import { MENSAJE_ERROR_IA, ParseError, binario, llamarGemini, llamarGeminiJSON, logErrorIA, texto } from "./gemini.server";
 import { ESTADO_CATEGORIA, ESTADO_CORRECCION, ESTADO_CORRECCION_EN_CURSO, ESTADO_CORRECCION_FALLIDA, ESTADO_ETIQUETA_FALLIDA, LIMITE_CORRECCIONES_DEFECTO, LIMITE_INTENTOS_CORRECCION, correccionEnCurso, LIMITE_ANALISIS_DEFECTO, LIMITE_CATEGORIAS_DEFECTO, contarCupos, limiteAlcanzado } from "./limits";
 import { normalizarCodigo, normalizarEtiqueta, type ProductoOFF } from "./off";
 import { CATEGORIAS, normalizarCategoria, sumarDias } from "./nutri";
@@ -38,18 +39,9 @@ Reglas:
    - La fila de carne magra NO incluye la grasa/piel separada (sin doble conteo); conserva su grasa intramuscular.
    - En todas las demás filas descartable=false.`;
 
-function errorDeGateway(e: unknown): AnalisisRespuesta {
-  const status =
-    (e as { statusCode?: number })?.statusCode ??
-    (e as { cause?: { statusCode?: number } })?.cause?.statusCode;
-  console.error("AI error", status, e);
-  if (status === 402)
-    return { ok: false, codigo: "creditos", mensaje: "El servicio de IA no tiene créditos disponibles en este momento. Probá más tarde o cargá la comida a mano." };
-  if (status === 429)
-    return { ok: false, codigo: "rate", mensaje: "Hay muchas consultas en este momento. Esperá unos segundos y reintentá." };
-  if (status === 403)
-    return { ok: false, codigo: "error", mensaje: "El servicio de IA no está disponible ahora. Podés cargar la comida a mano." };
-  return { ok: false, codigo: "error", mensaje: "No pudimos analizar la comida. Reintentá o cargala a mano." };
+function errorDeGateway(e: unknown, contexto = "analizar"): AnalisisRespuesta {
+  logErrorIA(contexto, e);
+  return { ok: false, codigo: "error", mensaje: MENSAJE_ERROR_IA };
 }
 
 const AnalizarInput = z.object({
@@ -99,56 +91,29 @@ export const analizarComida = createServerFn({ method: "POST" })
       };
     }
 
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    const apiKey = process.env["GEMINI_API_KEY"];
     if (!apiKey) return { ok: false, codigo: "error", mensaje: "La IA no está configurada." };
 
     const registrar = (estado: string) =>
       supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado });
 
     try {
-      const { createOpenAI } = await import("@ai-sdk/openai");
-      const { streamText, Output } = await import("ai");
-      const provider = createOpenAI({
-        baseURL: AI_GATEWAY_URL,
-        apiKey,
-        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-      });
-
-      const content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }> = [];
-      content.push({
-        type: "text",
-        text: descripcion
-          ? `Descripción del usuario (tiene prioridad): ${descripcion}`
-          : "El usuario no dio descripción; estimá solo con la imagen.",
-      });
-      if (data.imagen) content.push({ type: "image", image: new URL(data.imagen) });
-
-      const result = streamText({
-        model: provider.responses(AI_MODEL),
-        instructions: PROMPT,
-        messages: [{ role: "user", content }],
-        output: Output.object({ schema: RespuestaIA }),
-        maxRetries: 0,
-        providerOptions: {
-          openai: {
-            forceReasoning: true,
-            reasoningEffort: "low",
-            reasoningSummary: "auto",
-            store: false,
-            include: ["reasoning.encrypted_content"],
-          },
-        },
-      });
-
       let parsed;
       try {
-        parsed = RespuestaIA.parse(await result.output);
+        parsed = await llamarGeminiJSON({
+          model: data.imagen ? GEMINI_MODEL_VISION : GEMINI_MODEL_TEXT,
+          system: PROMPT,
+          partes: [
+            texto(descripcion ? `Descripción del usuario (tiene prioridad): ${descripcion}` : "El usuario no dio descripción; estimá solo con la imagen."),
+            ...(data.imagen ? [binario(data.imagen)] : []),
+          ],
+          schema: RespuestaIA,
+        });
       } catch (e) {
-        const status = (e as { statusCode?: number })?.statusCode;
-        if (status) throw e;
-        console.error("AI parse error", e);
+        if (!(e instanceof ParseError)) throw e;
+        logErrorIA("analizar: respuesta ilegible", e);
         await registrar("error");
-        return { ok: false, codigo: "error", mensaje: "La IA devolvió una respuesta que no pudimos leer. Reintentá." };
+        return { ok: false, codigo: "error", mensaje: MENSAJE_ERROR_IA };
       }
 
       if (!parsed.es_comida || parsed.ingredientes.length === 0) {
@@ -178,32 +143,21 @@ export const transcribirAudio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TranscribirInput.parse(input))
   .handler(async ({ data }): Promise<{ ok: true; texto: string } | { ok: false; mensaje: string }> => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    const apiKey = process.env["GEMINI_API_KEY"];
     if (!apiKey) return { ok: false, mensaje: "La transcripción no está configurada." };
     try {
       const bytes = Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0));
       if (!bytes.length) return { ok: false, mensaje: "No se grabó audio." };
-      const ext = data.mime.includes("webm") ? "webm" : data.mime.includes("mp4") ? "m4a" : data.mime.includes("ogg") ? "ogg" : "wav";
       const mime = data.mime.split(";")[0] ?? "audio/webm";
-      const form = new FormData();
-      form.append("model", TRANSCRIBE_MODEL);
-      form.append("file", new File([bytes], `audio.${ext}`, { type: mime }));
-      form.append("response_format", "json");
-      form.append("language", "es");
-      const res = await fetch(`${AI_GATEWAY_URL}/audio/transcriptions`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: form,
+      const t = await llamarGemini({
+        model: GEMINI_MODEL_TRANSCRIBE,
+        system: "Transcribí literalmente el audio en español rioplatense. Devolvé solo el texto dicho, sin comentarios. Si no hay voz, devolvé un texto vacío.",
+        partes: [binario(data.audio, mime), texto("Transcribí este audio.")],
       });
-      if (!res.ok) {
-        console.error("transcribe error", res.status, await res.text());
-        return { ok: false, mensaje: res.status === 402 ? "Sin créditos de IA para transcribir." : "No pudimos transcribir el audio. Escribilo a mano." };
-      }
-      const json = (await res.json()) as { text?: string };
-      return { ok: true, texto: (json.text ?? "").trim() };
+      return { ok: true, texto: t.trim() };
     } catch (e) {
-      console.error(e);
-      return { ok: false, mensaje: "No pudimos transcribir el audio. Escribilo a mano." };
+      logErrorIA("transcribir", e);
+      return { ok: false, mensaje: MENSAJE_ERROR_IA };
     }
   });
 
@@ -227,29 +181,19 @@ export const clasificarCategoria = createServerFn({ method: "POST" })
       const { data: filas } = await supabase.from("analisis_ia").select("estado").eq("user_id", userId).eq("fecha_local", fecha);
       if (limiteAlcanzado(contarCupos((filas ?? []).map((f) => f.estado)).categorias, limite)) return fallback;
 
-      const apiKey = process.env["LOVABLE_API_KEY"];
+      const apiKey = process.env["GEMINI_API_KEY"];
       if (!apiKey) return fallback;
       await supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado: ESTADO_CATEGORIA });
 
-      const { createOpenAI } = await import("@ai-sdk/openai");
-      const { streamText, Output } = await import("ai");
-      const provider = createOpenAI({
-        baseURL: AI_GATEWAY_URL,
-        apiKey,
-        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+      const out = await llamarGeminiJSON({
+        model: GEMINI_MODEL_TEXT,
+        system: `Clasificá el producto alimenticio en exactamente una categoría de esta lista: ${CATEGORIAS.join(", ")}. Si no estás seguro, usá "Otros".`,
+        partes: [texto(`Producto: ${data.nombre}`)],
+        schema: z.object({ categoria: z.enum(CATEGORIAS) }),
       });
-      const result = streamText({
-        model: provider.responses(AI_MODEL),
-        instructions: `Clasificá el producto alimenticio en exactamente una categoría de esta lista: ${CATEGORIAS.join(", ")}. Si no estás seguro, usá "Otros".`,
-        messages: [{ role: "user", content: `Producto: ${data.nombre}` }],
-        output: Output.object({ schema: z.object({ categoria: z.enum(CATEGORIAS) }) }),
-        maxRetries: 0,
-        providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", store: false } },
-      });
-      const out = await result.output;
       return { categoria: normalizarCategoria(out.categoria), ok: true };
     } catch (e) {
-      console.error("clasificar error", e);
+      logErrorIA("clasificar", e);
       return fallback;
     }
   });
@@ -306,38 +250,23 @@ export const leerEtiqueta = createServerFn({ method: "POST" })
     if (limiteAlcanzado(contarCupos((filas ?? []).map((f) => f.estado)).analisis, limite)) {
       return { ok: false, mensaje: `Llegaste a ${limite} análisis con IA hoy. Podés cargar el producto a mano.` };
     }
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    const apiKey = process.env["GEMINI_API_KEY"];
     if (!apiKey) return { ok: false, mensaje: "La IA no está configurada." };
     // Failed readings are logged with an estado that never counts against the quota.
     const registrar = (estado: string) => supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado });
     const codigo = normalizarCodigo(data.codigo);
     try {
-      const { createOpenAI } = await import("@ai-sdk/openai");
-      const { streamText, Output } = await import("ai");
-      const provider = createOpenAI({
-        baseURL: AI_GATEWAY_URL,
-        apiKey,
-        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-      });
-      const result = streamText({
-        model: provider.responses(AI_MODEL),
-        instructions: PROMPT_ETIQUETA,
-        messages: [{ role: "user", content: [
-          { type: "text", text: "Leé la tabla nutricional de esta foto." },
-          { type: "image", image: new URL(data.imagen) },
-        ] }],
-        output: Output.object({ schema: LecturaSchema }),
-        maxRetries: 0,
-        providerOptions: {
-          openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] },
-        },
-      });
       let lectura;
       try {
-        lectura = LecturaSchema.parse(await result.output);
+        lectura = await llamarGeminiJSON({
+          model: GEMINI_MODEL_VISION,
+          system: PROMPT_ETIQUETA,
+          partes: [texto("Leé la tabla nutricional de esta foto."), binario(data.imagen)],
+          schema: LecturaSchema,
+        });
       } catch (e) {
-        if ((e as { statusCode?: number })?.statusCode) throw e;
-        console.error("etiqueta parse error", e);
+        if (!(e instanceof ParseError)) throw e;
+        logErrorIA("etiqueta: respuesta ilegible", e);
         await registrar(ESTADO_ETIQUETA_FALLIDA);
         return { ok: false, mensaje: "No pudimos leer la etiqueta. Probá con otra foto más nítida." };
       }
@@ -359,8 +288,8 @@ export const leerEtiqueta = createServerFn({ method: "POST" })
       return { ok: true, producto: r.producto };
     } catch (e) {
       await registrar(ESTADO_ETIQUETA_FALLIDA);
-      const res = errorDeGateway(e);
-      return { ok: false, mensaje: res.ok ? "" : res.mensaje.replace("la comida", "el producto") };
+      logErrorIA("etiqueta", e);
+      return { ok: false, mensaje: MENSAJE_ERROR_IA };
     }
   });
 
@@ -428,7 +357,7 @@ export const corregirComida = createServerFn({ method: "POST" })
       return { ok: false, codigo: "en_curso", mensaje: "Ya hay una corrección en curso. Esperá a que termine." };
     }
 
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    const apiKey = process.env["GEMINI_API_KEY"];
     if (!apiKey) return { ok: false, codigo: "error", mensaje: "La IA no está configurada." };
 
     const registrar = (estado: string) => supabase.from("analisis_ia").insert({ user_id: userId, fecha_local: fecha, estado });
@@ -444,41 +373,23 @@ export const corregirComida = createServerFn({ method: "POST" })
     });
 
     try {
-      const { createOpenAI } = await import("@ai-sdk/openai");
-      const { streamText, Output } = await import("ai");
-      const provider = createOpenAI({
-        baseURL: AI_GATEWAY_URL,
-        apiKey,
-        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-      });
       const lista = antes.map(({ id, nombre, categoria, gramos, calorias, proteinas, carbohidratos, grasas, grasas_saturadas, fibra, azucares, sodio_mg, editado_manual, descartable }) => ({
         id, nombre, categoria: categoria ?? "Otros", gramos, calorias, proteinas, carbohidratos, grasas, grasas_saturadas, fibra, azucares, sodio_mg,
         editado_manual: !!editado_manual, descartable: !!descartable,
       }));
-      const content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }> = [
-        { type: "text", text: `Plato: ${data.nombre_plato || "Comida"}\nIngredientes actuales (JSON):\n${JSON.stringify(lista)}\n\nAclaración del usuario (tiene prioridad): ${data.aclaracion}` },
-      ];
-      if (data.imagen) content.push({ type: "image", image: new URL(data.imagen) });
-
-      const result = streamText({
-        model: provider.responses(AI_MODEL),
-        instructions: PROMPT_CORRECCION,
-        messages: [{ role: "user", content }],
-        output: Output.object({ schema: RespuestaCorreccionIA }),
-        maxRetries: 0,
-        providerOptions: {
-          openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] },
-        },
-      });
-
       let parsed;
       try {
-        parsed = RespuestaCorreccionIA.parse(await result.output);
+        parsed = await llamarGeminiJSON({
+          model: GEMINI_MODEL_TEXT,
+          system: PROMPT_CORRECCION,
+          partes: [texto(`Plato: ${data.nombre_plato || "Comida"}\nIngredientes actuales (JSON):\n${JSON.stringify(lista)}\n\nAclaración del usuario (tiene prioridad): ${data.aclaracion}`), ...(data.imagen ? [binario(data.imagen)] : [])],
+          schema: RespuestaCorreccionIA,
+        });
       } catch (e) {
-        if ((e as { statusCode?: number })?.statusCode) throw e;
-        console.error("Corrección: respuesta ilegible", e);
+        if (!(e instanceof ParseError)) throw e;
+        logErrorIA("corregir: respuesta ilegible", e);
         await registrar(ESTADO_CORRECCION_FALLIDA);
-        return { ok: false, codigo: "error", mensaje: "La IA devolvió una respuesta que no pudimos leer. Reintentá." };
+        return { ok: false, codigo: "error", mensaje: MENSAJE_ERROR_IA };
       }
 
       let n = 0;
@@ -491,9 +402,7 @@ export const corregirComida = createServerFn({ method: "POST" })
       return { ok: true, ingredientes: r.ingredientes, cambios: r.cambios, pregunta: null, usados: cupos.correcciones + 1, limite };
     } catch (e) {
       await registrar(ESTADO_CORRECCION_FALLIDA);
-      const err = errorDeGateway(e);
-      if (err.ok) return { ok: false, codigo: "error", mensaje: "No pudimos corregir. Reintentá." };
-      const codigo = err.codigo === "creditos" || err.codigo === "rate" ? err.codigo : "error";
-      return { ok: false, codigo, mensaje: codigo === "error" ? "No pudimos corregir la comida. Reintentá." : err.mensaje };
+      logErrorIA("corregir", e);
+      return { ok: false, codigo: "error", mensaje: MENSAJE_ERROR_IA };
     }
   });
